@@ -103,7 +103,8 @@ internal final class DictionaryComponentDecoder {
         from component: Any?,
         at codingPathNode: @autoclosure () -> CodingPathNode
     ) throws -> T {
-        if let string = component as? String {
+        // The strategy is checked first, so that numbers are not cast to `String` with the default strategy.
+        if case .convertFromString = options.nonConformingFloatDecodingStrategy, let string = component as? String {
             switch options.nonConformingFloatDecodingStrategy {
             case let .convertFromString(positiveInfinity, _, _) where string == positiveInfinity:
                 return T.infinity
