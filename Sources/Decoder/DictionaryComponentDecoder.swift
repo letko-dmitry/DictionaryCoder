@@ -107,13 +107,16 @@ extension DictionaryComponentDecoder {
             return Date(timeIntervalSince1970: try decodePrimitiveValue(from: component, at: codingPath()) / 1000.0)
 
         case .iso8601:
-            guard #available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *) else {
-                fatalError("ISO8601DateFormatter is unavailable on this platform.")
+            let formattedDate = try decodePrimitiveValue(of: String.self, from: component, at: codingPath())
+            let date: Date?
+
+            if #available(macOS 12, iOS 15, tvOS 15, watchOS 8, *) {
+                date = try? Date.ISO8601FormatStyle().parse(formattedDate)
+            } else {
+                date = ISO8601DateFormatter.internetDateTime.date(from: formattedDate)
             }
 
-            let formattedDate = try decodePrimitiveValue(of: String.self, from: component, at: codingPath())
-
-            guard let date = ISO8601DateFormatter().date(from: formattedDate) else {
+            guard let date else {
                 let errorContext = DecodingError.Context(
                     codingPath: codingPath(),
                     debugDescription: "Expected date string to be ISO8601-formatted."
@@ -328,6 +331,14 @@ extension DictionaryComponentDecoder {
             return try decodeNonPrimitiveValue(from: component, at: codingPath())
         }
     }
+}
+
+extension ISO8601DateFormatter {
+
+    // MARK: - Type Properties
+
+    // Configured once and then only used to format and parse dates, which is thread-safe.
+    fileprivate nonisolated(unsafe) static let internetDateTime = ISO8601DateFormatter()
 }
 
 extension DecodingError {

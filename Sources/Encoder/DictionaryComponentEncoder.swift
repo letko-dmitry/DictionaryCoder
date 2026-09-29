@@ -76,17 +76,7 @@ extension DictionaryComponentEncoder {
             return encodePrimitiveValue(date.timeIntervalSince1970, at: codingPath())
 
         case .iso8601:
-            guard #available(macOS 10.12, iOS 10.0, watchOS 3.0, tvOS 10.0, *) else {
-                fatalError("ISO8601DateFormatter is unavailable on this platform.")
-            }
-
-            let formattedDate = ISO8601DateFormatter.string(
-                from: date,
-                timeZone: .iso8601TimeZone,
-                formatOptions: .withInternetDateTime
-            )
-
-            return encodePrimitiveValue(formattedDate, at: codingPath())
+            return encodePrimitiveValue(ISO8601DateFormatter.internetDateTime.string(from: date), at: codingPath())
 
         case let .formatted(dateFormatter):
             return encodePrimitiveValue(dateFormatter.string(from: date), at: codingPath())
@@ -281,11 +271,19 @@ extension DictionaryComponentEncoder {
     }
 }
 
-extension TimeZone {
+extension ISO8601DateFormatter {
 
     // MARK: - Type Properties
 
-    fileprivate static let iso8601TimeZone = TimeZone(secondsFromGMT: 0)!
+    // Configured once and then only used to format and parse dates, which is thread-safe.
+    fileprivate nonisolated(unsafe) static let internetDateTime: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+
+        formatter.formatOptions = .withInternetDateTime
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+
+        return formatter
+    }()
 }
 
 extension EncodingError {
