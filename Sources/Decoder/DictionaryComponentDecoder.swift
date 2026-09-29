@@ -22,7 +22,23 @@ internal final class DictionaryComponentDecoder {
         from component: Any?,
         at codingPathNode: @autoclosure () -> CodingPathNode
     ) throws -> T {
-        if let value = component as? T {
+        guard let component else {
+            return try decodeConvertedNumber(from: component, at: codingPathNode())
+        }
+
+        let componentType = Swift.type(of: component)
+
+        if componentType == T.self, let value = component as? T {
+            return value
+        }
+
+        // Bridging an `NSNumber` through `as? T` looks the bridging up on every call,
+        // while bridging one known to be an `NSNumber` calls the same conversion directly.
+        if componentType is NSNumber.Type, let number = component as? NSNumber {
+            if let value = number as? T {
+                return value
+            }
+        } else if let value = component as? T {
             return value
         }
 
@@ -332,6 +348,17 @@ internal final class DictionaryComponentDecoder {
         return url
     }
 
+    // Kept out of `decodeComponentValue`, as the compiler reserves stack space for the generic copies here
+    // on entry to the function, which would slow down decoding of every other value.
+    @inline(never)
+    private func decodePrimitiveComponentValue<T: Decodable>(
+        of type: T.Type,
+        from component: Any?,
+        at codingPathNode: @autoclosure () -> CodingPathNode
+    ) throws -> T {
+        try decodePrimitiveValue(of: type, from: component, at: codingPathNode())
+    }
+
     // MARK: -
 
     @inline(__always)
@@ -482,7 +509,7 @@ internal final class DictionaryComponentDecoder {
         // Primitive values are decoded in place,
         // so that an array of numbers, for example, does not create a nested decoder for each element.
         if PrimitiveTypes.contains(type) {
-            return try decodePrimitiveValue(of: type, from: component, at: codingPathNode())
+            return try decodePrimitiveComponentValue(of: type, from: component, at: codingPathNode())
         }
 
         switch ObjectIdentifier(type) {
