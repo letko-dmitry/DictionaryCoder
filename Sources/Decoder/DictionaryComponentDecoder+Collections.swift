@@ -68,12 +68,31 @@ extension DictionaryComponentDecoder {
         from component: Any?,
         at codingPathNode: @autoclosure () -> CodingPathNode
     ) throws -> [Element]? {
-        guard let components = component as? [Any] else {
+        // The components are read directly rather than through their subscript,
+        // which checks every element for `nil` and the kind of the components.
+        switch DictionaryUnkeyedComponents(component) {
+        case let .native(components):
+            return try decodeElements(of: type, count: components.count, at: codingPathNode()) { components[$0] }
+
+        case let .foundation(components):
+            return try decodeElements(of: type, count: components.count, at: codingPathNode()) { components[$0] }
+
+        case let .optionals(components):
+            return try decodeElements(of: type, count: components.count, at: codingPathNode()) { components[$0] }
+
+        case nil:
             return nil
         }
+    }
 
-        return try components.indices.map { index in
-            try decodeComponentValue(of: type, from: components[index], at: codingPathNode().appending(index: index))
+    private func decodeElements<Element: Decodable>(
+        of type: Element.Type,
+        count: Int,
+        at codingPathNode: @autoclosure () -> CodingPathNode,
+        component: (_ index: Int) -> Any?
+    ) throws -> [Element] {
+        try (0..<count).map { index in
+            try decodeComponentValue(of: type, from: component(index), at: codingPathNode().appending(index: index))
         }
     }
 

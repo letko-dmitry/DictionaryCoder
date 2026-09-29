@@ -4,7 +4,7 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
 
     // MARK: - Instance Properties
 
-    internal let components: [Any?]
+    internal let components: DictionaryUnkeyedComponents
     internal let context: DictionaryComponentDecoder
     internal let codingPathNode: CodingPathNode
 
@@ -30,7 +30,7 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
     // MARK: - Initializers
 
     internal init(
-        components: [Any?],
+        components: DictionaryUnkeyedComponents,
         context: DictionaryComponentDecoder,
         codingPathNode: CodingPathNode
     ) {
@@ -167,5 +167,73 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
 
     internal func superDecoder() throws -> Decoder {
         try decodeNextComponent { superDecoder(for: $0, at: currentCodingPathNode) }
+    }
+}
+
+/// Components of an unkeyed container. Arrays of `Any`, as the encoder writes them, and Foundation arrays,
+/// such as the ones from `JSONSerialization` or property lists, are read in place,
+/// as converting an array wraps or bridges every element up front.
+internal enum DictionaryUnkeyedComponents {
+
+    // MARK: - Enumeration Cases
+
+    case native([Any])
+    case foundation(NSArray)
+
+    // Other arrays, such as `[Int?]`, are converted, which unwraps their optional elements.
+    case optionals([Any?])
+
+    // MARK: - Instance Properties
+
+    internal var count: Int {
+        switch self {
+        case let .native(components):
+            components.count
+
+        case let .foundation(components):
+            components.count
+
+        case let .optionals(components):
+            components.count
+        }
+    }
+
+    // MARK: - Initializers
+
+    internal init?(_ component: Any?) {
+        guard let component else {
+            return nil
+        }
+
+        let componentType = type(of: component)
+
+        if componentType == [Any].self, let components = component as? [Any] {
+            self = .native(components)
+        } else if componentType is NSArray.Type, let components = component as? NSArray {
+            self = .foundation(components)
+        } else if let components = component as? [Any?] {
+            self = .optionals(components)
+        } else {
+            return nil
+        }
+    }
+
+    // MARK: - Subscripts
+
+    @inline(__always)
+    internal subscript(index: Int) -> Any? {
+        switch self {
+        case let .native(components):
+            let component = components[index]
+
+            // `nil` is kept in an array of `Any` as `Optional<Any>.none`, which is how the encoder writes it.
+            return type(of: component) == Optional<Any>.self ? nil : component
+
+        case let .foundation(components):
+            return components[index]
+
+        case let .optionals(components):
+            return components[index]
+        }
     }
 }

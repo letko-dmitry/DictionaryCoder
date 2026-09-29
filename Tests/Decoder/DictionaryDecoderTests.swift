@@ -450,6 +450,46 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
         assertDecoderSucceeds(decoding: DecodableStruct.self, from: dictionary)
     }
 
+    func testThatDecoderSucceedsWhenDecodingEncodedArrayWithNils() throws {
+        // The encoder keeps `nil` in an array of `Any` as `Optional<Any>.none`.
+        let dictionary = try DictionaryEncoder().encode(["foo": [1, nil, 3] as [Int?]])
+
+        assertDecoderSucceeds(decoding: ["foo": [1, nil, 3] as [Int?]], from: dictionary)
+    }
+
+    func testThatDecoderSucceedsWhenDecodingFoundationArrays() throws {
+        struct Nested: Decodable, Equatable {
+            let foo: Int
+        }
+
+        struct DecodableStruct: Decodable, Equatable {
+            let optionals: [Int?]
+            let strings: [String]
+            let nested: [Nested]
+            let matrix: [[Int]]
+        }
+
+        let object: [String: Any] = [
+            "optionals": [1, NSNull(), 3] as [Any],
+            "strings": ["foo", "bar"],
+            "nested": [["foo": 1], ["foo": 2]],
+            "matrix": [[1, 2], [3]]
+        ]
+
+        // Arrays of `JSONSerialization` output are Foundation arrays.
+        let json = try JSONSerialization.data(withJSONObject: object)
+        let dictionary = try XCTUnwrap(JSONSerialization.jsonObject(with: json) as? [String: Any])
+
+        let value = DecodableStruct(
+            optionals: [1, nil, 3],
+            strings: ["foo", "bar"],
+            nested: [Nested(foo: 1), Nested(foo: 2)],
+            matrix: [[1, 2], [3]]
+        )
+
+        assertDecoderSucceeds(decoding: value, from: dictionary)
+    }
+
     func testThatDecoderSucceedsWhenDecodingStructWithURL() {
         struct DecodableStruct: Decodable, Equatable {
             let foobar: URL?
