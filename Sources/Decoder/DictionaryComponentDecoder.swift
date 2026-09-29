@@ -451,14 +451,6 @@ private struct PrimitiveArrayType {
     fileprivate let float = ObjectIdentifier([Float].self)
 }
 
-extension ISO8601DateFormatter {
-
-    // MARK: - Type Properties
-
-    // Configured once and then only used to format and parse dates, which is thread-safe.
-    fileprivate nonisolated(unsafe) static let internetDateTime = ISO8601DateFormatter()
-}
-
 extension DecodingError {
 
     // MARK: - Type Methods

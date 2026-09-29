@@ -293,7 +293,7 @@ extension ISO8601DateFormatter {
     // MARK: - Type Properties
 
     // Configured once and then only used to format and parse dates, which is thread-safe.
-    fileprivate nonisolated(unsafe) static let internetDateTime: ISO8601DateFormatter = {
+    internal nonisolated(unsafe) static let internetDateTime: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
 
         formatter.formatOptions = .withInternetDateTime
