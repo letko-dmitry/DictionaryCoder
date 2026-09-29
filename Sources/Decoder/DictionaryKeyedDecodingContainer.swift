@@ -4,7 +4,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
 
     // MARK: - Instance Properties
 
-    internal let components: [String: Any]
+    internal let components: DictionaryKeyedComponents
     internal let context: DictionaryComponentDecoder
     internal let codingPathNode: CodingPathNode
 
@@ -13,13 +13,13 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
     }
 
     internal var allKeys: [Key] {
-        components.keys.compactMap { Key(stringValue: $0) }
+        components.compactMapKeys { Key(stringValue: $0) }
     }
 
     // MARK: - Initializers
 
     internal init(
-        components: [String: Any],
+        components: DictionaryKeyedComponents,
         context: DictionaryComponentDecoder,
         codingPathNode: CodingPathNode
     ) {
@@ -29,11 +29,11 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
 
         case let .custom(closure):
             let codingPath = codingPathNode.path
-            let componentKeysAndValues = components
+            let componentKeysAndValues = components.keysAndValues
                 .sorted { $0.key < $1.key }
                 .map { key, value in (closure(codingPath.appending(AnyCodingKey(key))).stringValue, value) }
 
-            self.components = Dictionary(componentKeysAndValues) { first, _ in first }
+            self.components = .native(Dictionary(componentKeysAndValues) { first, _ in first })
         }
 
         self.context = context
@@ -81,7 +81,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
     // MARK: - KeyedDecodingContainerProtocol
 
     internal func contains(_ key: Key) -> Bool {
-        components.keys.contains(key.stringValue)
+        components[key.stringValue] != nil
     }
 
     internal func decodeNil(forKey key: Key) throws -> Bool {
@@ -279,6 +279,70 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
 
     internal func superDecoder() throws -> Decoder {
         try superDecoder(forAnyKey: AnyCodingKey.super)
+    }
+}
+
+/// Components of a keyed container. Foundation dictionaries, such as the ones from `JSONSerialization`
+/// or property lists, are read in place, as converting one to `[String: Any]` bridges all of its keys up front.
+internal enum DictionaryKeyedComponents {
+
+    // MARK: - Enumeration Cases
+
+    case native([String: Any])
+    case foundation(NSDictionary)
+
+    // MARK: - Instance Properties
+
+    internal var keysAndValues: [(key: String, value: Any)] {
+        switch self {
+        case let .native(components):
+            Array(components)
+
+        case let .foundation(components):
+            components.compactMap { key, value in (key as? String).map { ($0, value) } }
+        }
+    }
+
+    // MARK: - Initializers
+
+    internal init?(_ component: Any?) {
+        guard let component else {
+            return nil
+        }
+
+        // Checking the type first, as `as? [String: Any]` would bridge a Foundation dictionary as a whole.
+        if type(of: component) is NSDictionary.Type, let components = component as? NSDictionary {
+            self = .foundation(components)
+        } else if let components = component as? [String: Any] {
+            self = .native(components)
+        } else {
+            return nil
+        }
+    }
+
+    // MARK: - Instance Methods
+
+    internal func compactMapKeys<T>(_ transform: (_ key: String) -> T?) -> [T] {
+        switch self {
+        case let .native(components):
+            components.keys.compactMap(transform)
+
+        case let .foundation(components):
+            components.allKeys.compactMap { ($0 as? String).flatMap(transform) }
+        }
+    }
+
+    // MARK: - Subscripts
+
+    @inline(__always)
+    internal subscript(key: String) -> Any? {
+        switch self {
+        case let .native(components):
+            components[key]
+
+        case let .foundation(components):
+            components.object(forKey: key)
+        }
     }
 }
 

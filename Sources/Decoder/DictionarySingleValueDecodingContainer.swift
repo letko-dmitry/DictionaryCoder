@@ -109,7 +109,7 @@ internal final class DictionarySingleValueDecodingContainer:
     // MARK: - Decoder
 
     internal func container<Key: CodingKey>(keyedBy keyType: Key.Type) throws -> KeyedDecodingContainer<Key> {
-        guard let components = component as? [String: Any] else {
+        guard let components = DictionaryKeyedComponents(component) else {
             throw DecodingError.keyedContainerTypeMismatch(at: codingPath, component: component)
         }
 

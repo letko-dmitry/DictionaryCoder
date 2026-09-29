@@ -370,6 +370,42 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
         assertDecoderSucceeds(decoding: value, from: dictionary)
     }
 
+    func testThatDecoderSucceedsWhenDecodingFoundationDictionaries() throws {
+        struct Nested: Decodable, Equatable {
+            let foo: Int
+            let bar: String?
+        }
+
+        struct DecodableStruct: Decodable, Equatable {
+            let nested: Nested
+            let nestedArray: [Nested]
+            let null: Int?
+            let absent: Int?
+            let dictionary: [String: Int]
+        }
+
+        let object: [String: Any] = [
+            "nested": ["foo": 1, "bar": "baz"],
+            "nestedArray": [["foo": 2]],
+            "null": NSNull(),
+            "dictionary": ["a": 1, "b": 2]
+        ]
+
+        // Nested objects of `JSONSerialization` output are Foundation dictionaries.
+        let json = try JSONSerialization.data(withJSONObject: object)
+        let dictionary = try XCTUnwrap(JSONSerialization.jsonObject(with: json) as? [String: Any])
+
+        let value = DecodableStruct(
+            nested: Nested(foo: 1, bar: "baz"),
+            nestedArray: [Nested(foo: 2, bar: nil)],
+            null: nil,
+            absent: nil,
+            dictionary: ["a": 1, "b": 2]
+        )
+
+        assertDecoderSucceeds(decoding: value, from: dictionary)
+    }
+
     func testThatDecoderSucceedsWhenDecodingStructWithURL() {
         struct DecodableStruct: Decodable, Equatable {
             let foobar: URL?

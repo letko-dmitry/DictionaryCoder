@@ -48,6 +48,30 @@ final class DictionaryDecoderStrategiesTests: XCTestCase, DictionaryDecoderTesti
         assertDecoderSucceeds(decoding: DecodableStruct.self, from: dictionary)
     }
 
+    func testThatDecoderSucceedsWhenDecodingFoundationDictionaryUsingCustomFunctionForKeys() {
+        struct Nested: Decodable, Equatable {
+            let foo: Bool
+            let bar: Bool
+        }
+
+        struct DecodableStruct: Decodable, Equatable {
+            let nested: Nested
+        }
+
+        decoder.keyDecodingStrategy = .custom { codingPath in
+            AnyCodingKey(codingPath.last?.stringValue.components(separatedBy: ".").first ?? "unknown")
+        }
+
+        let nested: NSDictionary = [
+            "foo.value": true,
+            "bar.value": false
+        ]
+
+        let dictionary: [String: Any] = ["nested.value": nested]
+
+        assertDecoderSucceeds(decoding: DecodableStruct(nested: Nested(foo: true, bar: false)), from: dictionary)
+    }
+
     func testThatDecoderSucceedsWhenDecodingCollidingKeysUsingCustomFunctionForKeys() {
         decoder.keyDecodingStrategy = .custom { _ in AnyCodingKey("foobar") }
 
