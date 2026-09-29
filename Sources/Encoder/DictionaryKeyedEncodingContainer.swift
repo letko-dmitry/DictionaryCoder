@@ -1,6 +1,6 @@
 import Foundation
 
-internal final class DictionaryKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingContainerProtocol {
+internal struct DictionaryKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingContainerProtocol {
 
     // MARK: - Instance Properties
 
