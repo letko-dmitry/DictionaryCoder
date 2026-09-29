@@ -76,6 +76,11 @@ internal final class DictionarySingleValueEncodingContainer:
         try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
     }
 
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    internal func encode(_ value: Int128) throws {
+        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+    }
+
     internal func encode(_ value: UInt) throws {
         try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
     }
@@ -93,6 +98,11 @@ internal final class DictionarySingleValueEncodingContainer:
     }
 
     internal func encode(_ value: UInt64) throws {
+        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+    }
+
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    internal func encode(_ value: UInt128) throws {
         try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
     }
 

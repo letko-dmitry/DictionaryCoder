@@ -109,6 +109,11 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
         try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
     }
 
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    internal func decode(_ type: Int128.Type) throws -> Int128 {
+        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+    }
+
     internal func decode(_ type: UInt.Type) throws -> UInt {
         try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
     }
@@ -126,6 +131,11 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
     }
 
     internal func decode(_ type: UInt64.Type) throws -> UInt64 {
+        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+    }
+
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    internal func decode(_ type: UInt128.Type) throws -> UInt128 {
         try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
     }
 

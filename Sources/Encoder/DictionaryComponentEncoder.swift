@@ -192,6 +192,15 @@ internal final class DictionaryComponentEncoder {
         encodePrimitiveValue(value, at: codingPathNode())
     }
 
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @inline(__always)
+    internal func encodeComponentValue(
+        _ value: Int128,
+        at codingPathNode: @autoclosure () -> CodingPathNode
+    ) -> DictionaryComponent {
+        encodePrimitiveValue(value, at: codingPathNode())
+    }
+
     @inline(__always)
     internal func encodeComponentValue(
         _ value: UInt,
@@ -227,6 +236,15 @@ internal final class DictionaryComponentEncoder {
     @inline(__always)
     internal func encodeComponentValue(
         _ value: UInt64,
+        at codingPathNode: @autoclosure () -> CodingPathNode
+    ) -> DictionaryComponent {
+        encodePrimitiveValue(value, at: codingPathNode())
+    }
+
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @inline(__always)
+    internal func encodeComponentValue(
+        _ value: UInt128,
         at codingPathNode: @autoclosure () -> CodingPathNode
     ) -> DictionaryComponent {
         encodePrimitiveValue(value, at: codingPathNode())
@@ -287,6 +305,12 @@ internal final class DictionaryComponentEncoder {
             return encodePrimitiveValue(value, at: codingPathNode())
 
         default:
+            if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *) {
+                if T.self == Int128.self || T.self == UInt128.self {
+                    return encodePrimitiveValue(value, at: codingPathNode())
+                }
+            }
+
             return try encodeNonPrimitiveValue(value, at: codingPathNode())
         }
     }

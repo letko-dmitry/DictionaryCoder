@@ -60,6 +60,11 @@ internal final class DictionarySingleValueDecodingContainer:
         try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    internal func decode(_ type: Int128.Type) throws -> Int128 {
+        try context.decodeComponentValue(from: component, at: codingPathNode)
+    }
+
     internal func decode(_ type: UInt.Type) throws -> UInt {
         try context.decodeComponentValue(from: component, at: codingPathNode)
     }
@@ -77,6 +82,11 @@ internal final class DictionarySingleValueDecodingContainer:
     }
 
     internal func decode(_ type: UInt64.Type) throws -> UInt64 {
+        try context.decodeComponentValue(from: component, at: codingPathNode)
+    }
+
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    internal func decode(_ type: UInt128.Type) throws -> UInt128 {
         try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 

@@ -169,6 +169,24 @@ final class DictionaryEncoderTests: XCTestCase, DictionaryEncoderTesting {
         assertEncoderSucceeds(encoding: ["foo": decimals], expecting: ["foo": decimals])
     }
 
+    func testThatEncoderSucceedsWhenEncodingWideIntegers() throws {
+        guard #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *) else {
+            throw XCTSkip("Int128 and UInt128 are unavailable")
+        }
+
+        struct EncodableStruct: Encodable {
+            let foo = Int128.max
+            let bar = UInt128.max
+            let baz: [Int128] = [-1, 2]
+        }
+
+        let dictionary = try encoder.encode(EncodableStruct())
+
+        XCTAssertEqual(dictionary["foo"] as? Int128, .max)
+        XCTAssertEqual(dictionary["bar"] as? UInt128, .max)
+        XCTAssertEqual(dictionary["baz"] as? [Int128], [-1, 2])
+    }
+
     func testThatEncoderSucceedsWhenEncodingStringToURLDictionary() {
         let value = [
             "foo": URL(string: "https://swift.org")!,

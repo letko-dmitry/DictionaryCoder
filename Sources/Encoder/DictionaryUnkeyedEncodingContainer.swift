@@ -88,6 +88,11 @@ internal final class DictionaryUnkeyedEncodingContainer:
         collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
     }
 
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    internal func encode(_ value: Int128) throws {
+        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+    }
+
     internal func encode(_ value: UInt) throws {
         collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
     }
@@ -105,6 +110,11 @@ internal final class DictionaryUnkeyedEncodingContainer:
     }
 
     internal func encode(_ value: UInt64) throws {
+        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+    }
+
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    internal func encode(_ value: UInt128) throws {
         collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
     }
 

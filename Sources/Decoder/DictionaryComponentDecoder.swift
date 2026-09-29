@@ -146,6 +146,35 @@ internal final class DictionaryComponentDecoder {
         throw DecodingError.invalidComponent(component, of: Decimal.self, at: codingPathNode().path)
     }
 
+    // `NSNumber` does not bridge 128-bit integers, so other integers are converted exactly.
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    private func decodeWideInteger<T: FixedWidthInteger & Decodable>(
+        of type: T.Type = T.self,
+        from component: Any?,
+        at codingPathNode: @autoclosure () -> CodingPathNode
+    ) throws -> T {
+        if let value = component as? T {
+            return value
+        }
+
+        let value: T? = switch component {
+        case let integer as any BinaryInteger:
+            T(exactly: integer)
+
+        case let number as NSNumber where !isBoolean(number):
+            (number as? Int64).flatMap(T.init(exactly:)) ?? (number as? UInt64).flatMap(T.init(exactly:))
+
+        default:
+            nil
+        }
+
+        guard let value else {
+            throw DecodingError.invalidComponent(component, of: T.self, at: codingPathNode().path)
+        }
+
+        return value
+    }
+
     private func decodeNonPrimitiveValue<T: Decodable>(
         of type: T.Type = T.self,
         from component: consuming Any?,
@@ -365,6 +394,15 @@ internal final class DictionaryComponentDecoder {
         try decodePrimitiveValue(from: component, at: codingPathNode())
     }
 
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @inline(__always)
+    internal func decodeComponentValue(
+        from component: Any?,
+        at codingPathNode: @autoclosure () -> CodingPathNode
+    ) throws -> Int128 {
+        try decodeWideInteger(from: component, at: codingPathNode())
+    }
+
     @inline(__always)
     internal func decodeComponentValue(
         from component: Any?,
@@ -403,6 +441,15 @@ internal final class DictionaryComponentDecoder {
         at codingPathNode: @autoclosure () -> CodingPathNode
     ) throws -> UInt64 {
         try decodePrimitiveValue(from: component, at: codingPathNode())
+    }
+
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @inline(__always)
+    internal func decodeComponentValue(
+        from component: Any?,
+        at codingPathNode: @autoclosure () -> CodingPathNode
+    ) throws -> UInt128 {
+        try decodeWideInteger(from: component, at: codingPathNode())
     }
 
     @inline(__always)
@@ -462,6 +509,16 @@ internal final class DictionaryComponentDecoder {
         default:
             if let array = try decodePrimitiveArray(of: type, from: component, at: codingPathNode()) {
                 return array as! T
+            }
+
+            if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *) {
+                if type == Int128.self {
+                    return try decodeWideInteger(from: component, at: codingPathNode()) as Int128 as! T
+                }
+
+                if type == UInt128.self {
+                    return try decodeWideInteger(from: component, at: codingPathNode()) as UInt128 as! T
+                }
             }
 
             return try decodeNonPrimitiveValue(from: component, at: codingPathNode())

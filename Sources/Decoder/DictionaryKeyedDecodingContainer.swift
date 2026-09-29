@@ -101,6 +101,11 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
         try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
     }
 
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    internal func decode(_ type: Int128.Type, forKey key: Key) throws -> Int128 {
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+    }
+
     internal func decode(_ type: UInt.Type, forKey key: Key) throws -> UInt {
         try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
     }
@@ -118,6 +123,11 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
     }
 
     internal func decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 {
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+    }
+
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    internal func decode(_ type: UInt128.Type, forKey key: Key) throws -> UInt128 {
         try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
     }
 
