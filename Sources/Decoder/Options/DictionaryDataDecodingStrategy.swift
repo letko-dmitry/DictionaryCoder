@@ -1,4 +1,4 @@
-import Foundation
+public import Foundation
 
 /// The strategies for decoding raw data.
 public enum DictionaryDataDecodingStrategy: Sendable {

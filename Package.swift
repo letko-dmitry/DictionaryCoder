@@ -1,6 +1,12 @@
 // swift-tools-version:6.4
 import PackageDescription
 
+let swiftSettings: [SwiftSetting] = [
+    .enableUpcomingFeature("MemberImportVisibility"),
+    .enableUpcomingFeature("InternalImportsByDefault"),
+    .strictMemorySafety()
+]
+
 let package = Package(
     name: "DictionaryCoder",
     platforms: [
@@ -25,13 +31,15 @@ let package = Package(
         .target(
             name: "DictionaryCoder",
             path: "Sources",
-            exclude: ["Info.plist"]
+            exclude: ["Info.plist"],
+            swiftSettings: swiftSettings
         ),
         .testTarget(
             name: "DictionaryCoderTests",
             dependencies: ["DictionaryCoder"],
             path: "Tests",
-            exclude: ["Info.plist"]
+            exclude: ["Info.plist"],
+            swiftSettings: swiftSettings
         )
     ],
     swiftLanguageModes: [.v6]
