@@ -22,7 +22,25 @@ internal final class DictionaryComponentDecoder {
         from component: Any?,
         at codingPath: @autoclosure () -> [CodingKey]
     ) throws -> T {
-        guard let value = component as? T else {
+        if let value = component as? T {
+            return value
+        }
+
+        return try decodeConvertedNumber(from: component, at: codingPath())
+    }
+
+    // Numbers of other types are converted the same way as `NSNumber`,
+    // so a dictionary decodes equally whether it holds Swift numbers or `NSNumber` instances.
+    // Unlike `NSNumber`, booleans are not converted to or from numbers here, as in `JSONDecoder`.
+    @inline(never)
+    private func decodeConvertedNumber<T: Decodable>(
+        of type: T.Type = T.self,
+        from component: Any?,
+        at codingPath: @autoclosure () -> [CodingKey]
+    ) throws -> T {
+        let isBoolean = component is Bool || T.self is Bool.Type
+
+        guard !isBoolean, let number = component as? NSNumber, let value = number as? T else {
             throw DecodingError.invalidComponent(component, of: T.self, at: codingPath())
         }
 
@@ -62,8 +80,7 @@ internal final class DictionaryComponentDecoder {
         from component: Any?,
         at codingPath: @autoclosure () -> [CodingKey]
     ) throws -> T {
-        switch component {
-        case let string as String:
+        if let string = component as? String {
             switch options.nonConformingFloatDecodingStrategy {
             case let .convertFromString(positiveInfinity, _, _) where string == positiveInfinity:
                 return T.infinity
@@ -77,23 +94,20 @@ internal final class DictionaryComponentDecoder {
             case .convertFromString, .throw:
                 break
             }
+        }
 
-        case let number as T where number.isFinite:
-            return number
+        let number: T = try decodePrimitiveValue(from: component, at: codingPath())
 
-        case let number as T:
+        guard number.isFinite else {
             let errorContext = DecodingError.Context(
                 codingPath: codingPath(),
                 debugDescription: "Parsed dictionary number \(number) does not fit in \(T.self)."
             )
 
             throw DecodingError.dataCorrupted(errorContext)
-
-        default:
-            break
         }
 
-        throw DecodingError.invalidComponent(component, of: T.self, at: codingPath())
+        return number
     }
 
     private func decodeDate(
