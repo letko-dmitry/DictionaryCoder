@@ -6,13 +6,13 @@
 [![SPM compatible](https://img.shields.io/badge/SPM-Compatible-brightgreen)](https://swift.org/package-manager/)
 [![Platforms](https://img.shields.io/cocoapods/p/DictionaryCoder)](https://developer.apple.com/discover/)
 [![Xcode](https://img.shields.io/badge/Xcode-16-blue)](https://developer.apple.com/xcode)
-[![Swift](https://img.shields.io/badge/Swift-5.9-orange)](https://swift.org)
+[![Swift](https://img.shields.io/badge/Swift-6.0-orange)](https://swift.org)
 [![License](https://img.shields.io/github/license/almazrafi/DictionaryCoder)](https://opensource.org/licenses/MIT)
 
 ## Requirements
 - iOS 13.0+ / macOS 11.5+ / watchOS 6.0+ / tvOS 13.0+
 - Xcode 16.4+
-- Swift 5.9+
+- Swift 6.0+
 
 ## Usage
 ```swift
@@ -43,7 +43,7 @@ and then specify `"DictionaryCoder"` as a dependency of the Target in which you 
 
 Here's an example `Package.swift`:
 ``` swift
-// swift-tools-version:5.9
+// swift-tools-version:6.0
 import PackageDescription
 
 let package = Package(

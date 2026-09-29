@@ -5,7 +5,6 @@ import struct os.os_unfair_lock
 
 import func os.os_unfair_lock_lock
 import func os.os_unfair_lock_unlock
-import func os.os_unfair_lock_trylock
 
 internal final class MutexStorage<Value> {
 
@@ -30,9 +29,5 @@ internal final class MutexStorage<Value> {
 
     internal func unlock() {
         os_unfair_lock_unlock(unfairLock)
-    }
-
-    internal func tryLock() -> Bool {
-        os_unfair_lock_trylock(unfairLock)
     }
 }
