@@ -161,6 +161,65 @@ internal final class DictionaryComponentEncoder {
         encodePrimitiveValue(value, at: codingPathNode())
     }
 
+    // Casts the value, so it is called only for arrays of primitive values:
+    // the compiler reserves stack space for the generic copies here on every call.
+    @inline(never)
+    private func encodePrimitiveArray<T>(_ value: T) -> [Any]? {
+        let identifiers = PrimitiveArrayType.identifiers
+
+        switch ObjectIdentifier(T.self) {
+        case identifiers.string:
+            return (value as! [String]).map { $0 }
+
+        case identifiers.bool:
+            return (value as! [Bool]).map { $0 }
+
+        case identifiers.int:
+            return (value as! [Int]).map { $0 }
+
+        case identifiers.int8:
+            return (value as! [Int8]).map { $0 }
+
+        case identifiers.int16:
+            return (value as! [Int16]).map { $0 }
+
+        case identifiers.int32:
+            return (value as! [Int32]).map { $0 }
+
+        case identifiers.int64:
+            return (value as! [Int64]).map { $0 }
+
+        case identifiers.uInt:
+            return (value as! [UInt]).map { $0 }
+
+        case identifiers.uInt8:
+            return (value as! [UInt8]).map { $0 }
+
+        case identifiers.uInt16:
+            return (value as! [UInt16]).map { $0 }
+
+        case identifiers.uInt32:
+            return (value as! [UInt32]).map { $0 }
+
+        case identifiers.uInt64:
+            return (value as! [UInt64]).map { $0 }
+
+        // Non-finite numbers depend on the strategy, so such arrays are encoded element by element.
+        case identifiers.double:
+            let values = value as! [Double]
+
+            return values.allSatisfy(\.isFinite) ? values.map { $0 } : nil
+
+        case identifiers.float:
+            let values = value as! [Float]
+
+            return values.allSatisfy(\.isFinite) ? values.map { $0 } : nil
+
+        default:
+            return nil
+        }
+    }
+
     // MARK: -
 
     @inline(__always)
@@ -342,6 +401,12 @@ internal final class DictionaryComponentEncoder {
             return encodeUnchangedValue(value, at: codingPathNode())
 
         default:
+            // Arrays of primitive values are encoded in place as well,
+            // bypassing `Array.encode(to:)` that goes through an unkeyed container for every element.
+            if PrimitiveArrayType.contains(T.self), let elements = encodePrimitiveArray(value) {
+                return encodePrimitiveValue(elements, at: codingPathNode())
+            }
+
             if #available(watchOS 11.0, *) {
                 if T.self == Int128.self || T.self == UInt128.self {
                     return encodeUnchangedValue(value, at: codingPathNode())

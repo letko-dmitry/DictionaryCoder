@@ -526,31 +526,6 @@ internal final class DictionaryComponentDecoder {
     }
 }
 
-// Identifiers of generic types are cached, as looking up their metadata on every call is costly.
-private struct PrimitiveArrayType {
-
-    // MARK: - Type Properties
-
-    fileprivate static let identifiers = Self()
-
-    // MARK: - Instance Properties
-
-    fileprivate let string = ObjectIdentifier([String].self)
-    fileprivate let bool = ObjectIdentifier([Bool].self)
-    fileprivate let int = ObjectIdentifier([Int].self)
-    fileprivate let int8 = ObjectIdentifier([Int8].self)
-    fileprivate let int16 = ObjectIdentifier([Int16].self)
-    fileprivate let int32 = ObjectIdentifier([Int32].self)
-    fileprivate let int64 = ObjectIdentifier([Int64].self)
-    fileprivate let uInt = ObjectIdentifier([UInt].self)
-    fileprivate let uInt8 = ObjectIdentifier([UInt8].self)
-    fileprivate let uInt16 = ObjectIdentifier([UInt16].self)
-    fileprivate let uInt32 = ObjectIdentifier([UInt32].self)
-    fileprivate let uInt64 = ObjectIdentifier([UInt64].self)
-    fileprivate let double = ObjectIdentifier([Double].self)
-    fileprivate let float = ObjectIdentifier([Float].self)
-}
-
 extension DecodingError {
 
     // MARK: - Type Methods

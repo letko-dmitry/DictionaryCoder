@@ -244,6 +244,18 @@ final class DictionaryEncoderStrategiesTests: XCTestCase, DictionaryEncoderTesti
         assertEncoderSucceeds(encoding: value)
     }
 
+    func testThatEncoderSucceedsWhenEncodingNonConformingFloatArrayToString() {
+        encoder.nonConformingFloatEncodingStrategy = .convertToString(
+            positiveInfinity: "+∞",
+            negativeInfinity: "-∞",
+            nan: "¬"
+        )
+
+        let value = ["foobar": [Double.infinity, -Double.infinity, 1.5]]
+
+        assertEncoderSucceeds(encoding: value, expecting: ["foobar": ["+∞", "-∞", 1.5] as [Any]])
+    }
+
     // MARK: -
 
     func testThatEncoderSucceedsWhenEncodingNil() {

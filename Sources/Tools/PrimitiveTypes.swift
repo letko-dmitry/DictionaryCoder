@@ -22,3 +22,44 @@ internal enum PrimitiveTypes {
             || type == UInt64.self
     }
 }
+
+// Identifiers of generic types are cached, as looking up their metadata on every call is costly.
+internal struct PrimitiveArrayType {
+
+    // MARK: - Type Properties
+
+    internal static let identifiers = Self()
+
+    // MARK: - Type Methods
+
+    internal static func contains(_ type: Any.Type) -> Bool {
+        let identifiers = Self.identifiers
+
+        switch ObjectIdentifier(type) {
+        case identifiers.string, identifiers.bool, identifiers.double, identifiers.float,
+             identifiers.int, identifiers.int8, identifiers.int16, identifiers.int32, identifiers.int64,
+             identifiers.uInt, identifiers.uInt8, identifiers.uInt16, identifiers.uInt32, identifiers.uInt64:
+            return true
+
+        default:
+            return false
+        }
+    }
+
+    // MARK: - Instance Properties
+
+    internal let string = ObjectIdentifier([String].self)
+    internal let bool = ObjectIdentifier([Bool].self)
+    internal let int = ObjectIdentifier([Int].self)
+    internal let int8 = ObjectIdentifier([Int8].self)
+    internal let int16 = ObjectIdentifier([Int16].self)
+    internal let int32 = ObjectIdentifier([Int32].self)
+    internal let int64 = ObjectIdentifier([Int64].self)
+    internal let uInt = ObjectIdentifier([UInt].self)
+    internal let uInt8 = ObjectIdentifier([UInt8].self)
+    internal let uInt16 = ObjectIdentifier([UInt16].self)
+    internal let uInt32 = ObjectIdentifier([UInt32].self)
+    internal let uInt64 = ObjectIdentifier([UInt64].self)
+    internal let double = ObjectIdentifier([Double].self)
+    internal let float = ObjectIdentifier([Float].self)
+}
