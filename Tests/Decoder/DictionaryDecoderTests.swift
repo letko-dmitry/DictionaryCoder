@@ -1196,6 +1196,20 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
         }
     }
 
+    func testThatDecoderFailsWhenDecodingInvalidValueOfPrimitiveDictionary() {
+        let dictionary: [String: Any] = ["foo": ["bar": 123, "baz": "456"] as [String: Any]]
+
+        assertDecoderFails(decoding: [String: [String: Int]].self, from: dictionary) { error in
+            switch error {
+            case let DecodingError.typeMismatch(type, context) where type is Int.Type:
+                return context.codingPath.map(\.stringValue) == ["foo", "baz"]
+
+            default:
+                return false
+            }
+        }
+    }
+
     func testThatDecoderFailsWhenDecodingPrimitiveArrayFromNonArray() {
         let dictionary = ["foobar": 123]
 

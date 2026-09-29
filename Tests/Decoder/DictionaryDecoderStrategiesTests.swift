@@ -371,6 +371,18 @@ final class DictionaryDecoderStrategiesTests: XCTestCase, DictionaryDecoderTesti
         assertDecoderSucceeds(decoding: [String: [Double]].self, from: dictionary)
     }
 
+    func testThatDecoderSucceedsWhenDecodingNonConformingFloatDictionaryFromStrings() {
+        decoder.nonConformingFloatDecodingStrategy = .convertFromString(
+            positiveInfinity: "+∞",
+            negativeInfinity: "-∞",
+            nan: "¬"
+        )
+
+        let dictionary: [String: Any] = ["foobar": ["foo": "+∞", "bar": "-∞", "baz": 1.5] as [String: Any]]
+
+        assertDecoderSucceeds(decoding: [String: [String: Double]].self, from: dictionary)
+    }
+
     func testThatDecoderFailsWhenDecodingNonConformingFloatFromInvalidString() {
         decoder.nonConformingFloatDecodingStrategy = .convertFromString(
             positiveInfinity: "+∞",

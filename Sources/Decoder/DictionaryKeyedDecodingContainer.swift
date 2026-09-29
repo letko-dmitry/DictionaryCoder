@@ -293,6 +293,16 @@ internal enum DictionaryKeyedComponents {
 
     // MARK: - Instance Properties
 
+    internal var count: Int {
+        switch self {
+        case let .native(components):
+            components.count
+
+        case let .foundation(components):
+            components.count
+        }
+    }
+
     internal var keysAndValues: [(key: String, value: Any)] {
         switch self {
         case let .native(components):
@@ -321,6 +331,22 @@ internal enum DictionaryKeyedComponents {
     }
 
     // MARK: - Instance Methods
+
+    internal func forEach(_ body: (_ key: String, _ component: Any) throws -> Void) rethrows {
+        switch self {
+        case let .native(components):
+            for (key, component) in components {
+                try body(key, component)
+            }
+
+        case let .foundation(components):
+            for (key, component) in components {
+                if let key = key as? String {
+                    try body(key, component)
+                }
+            }
+        }
+    }
 
     internal func compactMapKeys<T>(_ transform: (_ key: String) -> T?) -> [T] {
         switch self {

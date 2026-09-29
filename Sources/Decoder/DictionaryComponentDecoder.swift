@@ -45,79 +45,6 @@ internal final class DictionaryComponentDecoder {
         return try decodeConvertedNumber(from: component, at: codingPathNode())
     }
 
-    // Arrays of primitive values are decoded in place as well,
-    // bypassing `Array.init(from:)` that goes through an unkeyed container for every element.
-    @inline(never)
-    private func decodePrimitiveArray(
-        of type: Any.Type,
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> Any? {
-        let identifiers = PrimitiveArrayType.identifiers
-
-        switch ObjectIdentifier(type) {
-        case identifiers.string:
-            return try decodeArray(of: String.self, from: component, at: codingPathNode())
-
-        case identifiers.bool:
-            return try decodeArray(of: Bool.self, from: component, at: codingPathNode())
-
-        case identifiers.int:
-            return try decodeArray(of: Int.self, from: component, at: codingPathNode())
-
-        case identifiers.int8:
-            return try decodeArray(of: Int8.self, from: component, at: codingPathNode())
-
-        case identifiers.int16:
-            return try decodeArray(of: Int16.self, from: component, at: codingPathNode())
-
-        case identifiers.int32:
-            return try decodeArray(of: Int32.self, from: component, at: codingPathNode())
-
-        case identifiers.int64:
-            return try decodeArray(of: Int64.self, from: component, at: codingPathNode())
-
-        case identifiers.uInt:
-            return try decodeArray(of: UInt.self, from: component, at: codingPathNode())
-
-        case identifiers.uInt8:
-            return try decodeArray(of: UInt8.self, from: component, at: codingPathNode())
-
-        case identifiers.uInt16:
-            return try decodeArray(of: UInt16.self, from: component, at: codingPathNode())
-
-        case identifiers.uInt32:
-            return try decodeArray(of: UInt32.self, from: component, at: codingPathNode())
-
-        case identifiers.uInt64:
-            return try decodeArray(of: UInt64.self, from: component, at: codingPathNode())
-
-        case identifiers.double:
-            return try decodeArray(of: Double.self, from: component, at: codingPathNode())
-
-        case identifiers.float:
-            return try decodeArray(of: Float.self, from: component, at: codingPathNode())
-
-        default:
-            return nil
-        }
-    }
-
-    // Returns `nil` for a component that is not an array, leaving the error to the generic decoding.
-    private func decodeArray<Element: Decodable>(
-        of type: Element.Type,
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> [Element]? {
-        guard let components = component as? [Any] else {
-            return nil
-        }
-
-        return try components.indices.map { index in
-            try decodeComponentValue(of: type, from: components[index], at: codingPathNode().appending(index: index))
-        }
-    }
-
     // Numbers of other types are converted the same way as `NSNumber`,
     // so a dictionary decodes equally whether it holds Swift numbers or `NSNumber` instances.
     // Unlike `NSNumber`, booleans are not converted to or from numbers here, as in `JSONDecoder`.
@@ -534,8 +461,14 @@ internal final class DictionaryComponentDecoder {
             return try decodeDecimal(from: component, at: codingPathNode()) as! T
 
         default:
-            if let array = try decodePrimitiveArray(of: type, from: component, at: codingPathNode()) {
+            if PrimitiveArrayType.contains(type),
+               let array = try decodePrimitiveArray(of: type, from: component, at: codingPathNode()) {
                 return array as! T
+            }
+
+            if PrimitiveDictionaryType.contains(type),
+               let dictionary = try decodePrimitiveDictionary(of: type, from: component, at: codingPathNode()) {
+                return dictionary as! T
             }
 
             if #available(watchOS 11.0, *) {

@@ -63,3 +63,44 @@ internal struct PrimitiveArrayType {
     internal let double = ObjectIdentifier([Double].self)
     internal let float = ObjectIdentifier([Float].self)
 }
+
+// Identifiers of generic types are cached, as looking up their metadata on every call is costly.
+internal struct PrimitiveDictionaryType {
+
+    // MARK: - Type Properties
+
+    internal static let identifiers = Self()
+
+    // MARK: - Type Methods
+
+    internal static func contains(_ type: Any.Type) -> Bool {
+        let identifiers = Self.identifiers
+
+        switch ObjectIdentifier(type) {
+        case identifiers.string, identifiers.bool, identifiers.double, identifiers.float,
+             identifiers.int, identifiers.int8, identifiers.int16, identifiers.int32, identifiers.int64,
+             identifiers.uInt, identifiers.uInt8, identifiers.uInt16, identifiers.uInt32, identifiers.uInt64:
+            return true
+
+        default:
+            return false
+        }
+    }
+
+    // MARK: - Instance Properties
+
+    internal let string = ObjectIdentifier([String: String].self)
+    internal let bool = ObjectIdentifier([String: Bool].self)
+    internal let int = ObjectIdentifier([String: Int].self)
+    internal let int8 = ObjectIdentifier([String: Int8].self)
+    internal let int16 = ObjectIdentifier([String: Int16].self)
+    internal let int32 = ObjectIdentifier([String: Int32].self)
+    internal let int64 = ObjectIdentifier([String: Int64].self)
+    internal let uInt = ObjectIdentifier([String: UInt].self)
+    internal let uInt8 = ObjectIdentifier([String: UInt8].self)
+    internal let uInt16 = ObjectIdentifier([String: UInt16].self)
+    internal let uInt32 = ObjectIdentifier([String: UInt32].self)
+    internal let uInt64 = ObjectIdentifier([String: UInt64].self)
+    internal let double = ObjectIdentifier([String: Double].self)
+    internal let float = ObjectIdentifier([String: Float].self)
+}
