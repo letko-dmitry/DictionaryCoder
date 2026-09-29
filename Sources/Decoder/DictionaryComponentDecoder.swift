@@ -241,10 +241,10 @@ internal final class DictionaryComponentDecoder {
     private func decodeDate(
         from component: consuming Any?,
         at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> Date {
+    ) throws -> Any {
         switch options.dateDecodingStrategy {
         case .deferredToDate:
-            return try decodeNonPrimitiveValue(from: component, at: codingPathNode())
+            return try decodeNonPrimitiveValue(of: Date.self, from: component, at: codingPathNode())
 
         case .secondsSince1970:
             return Date(timeIntervalSince1970: try decodePrimitiveValue(from: component, at: codingPathNode()))
@@ -315,7 +315,7 @@ internal final class DictionaryComponentDecoder {
         }
     }
 
-    private func decodeURL(from component: Any?, at codingPathNode: @autoclosure () -> CodingPathNode) throws -> URL {
+    private func decodeURL(from component: Any?, at codingPathNode: @autoclosure () -> CodingPathNode) throws -> Any {
         if let url = component as? URL {
             return url
         }
@@ -487,6 +487,8 @@ internal final class DictionaryComponentDecoder {
         case ObjectIdentifier(Float.self):
             return try decodeFloatingPointValue(from: component, at: codingPathNode()) as Float as! T
 
+        // Dates and URLs are returned as `Any`, as a resilient Foundation value in this function
+        // would make the compiler reserve stack space for it on every call, whatever the type.
         case ObjectIdentifier(Date.self):
             return try decodeDate(from: component, at: codingPathNode()) as! T
 
