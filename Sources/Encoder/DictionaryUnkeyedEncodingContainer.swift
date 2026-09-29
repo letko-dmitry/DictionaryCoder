@@ -2,11 +2,63 @@ internal final class DictionaryUnkeyedEncodingContainer:
     UnkeyedEncodingContainer,
     DictionaryComponentContainer {
 
+    // MARK: - Nested Types
+
+    // Accesses to the stored properties of a class are checked for exclusivity at run time,
+    // so the elements are kept in one property, which every change accesses once.
+    fileprivate struct Elements {
+
+        // MARK: - Type Methods
+
+        // `[Any]` cannot hold `nil` itself, so `nil` is kept as an element wrapped in `Any`.
+        @inline(__always)
+        private static func element(from component: consuming Any?) -> Any {
+            switch consume component {
+            case let value?:
+                value
+
+            case nil:
+                Optional<Any>.none as Any
+            }
+        }
+
+        // MARK: - Instance Properties
+
+        // Values are stored resolved, only nested containers are resolved along with the whole container.
+        fileprivate private(set) var values: [Any] = []
+        private var containers: [(index: Int, container: DictionaryComponentContainer)] = []
+
+        // MARK: - Instance Methods
+
+        @inline(__always)
+        private mutating func append(_ element: consuming Any) {
+            values.append(element)
+        }
+
+        @inline(__always)
+        fileprivate mutating func append(component: consuming Any?) {
+            append(Self.element(from: component))
+        }
+
+        fileprivate mutating func append(container: DictionaryComponentContainer) {
+            containers.append((values.count, container))
+
+            // A placeholder that is replaced with the resolved value of the container.
+            append(container)
+        }
+
+        fileprivate consuming func resolveValues() -> [Any] {
+            for (index, container) in containers {
+                values[index] = Self.element(from: container.resolveValue())
+            }
+
+            return values
+        }
+    }
+
     // MARK: - Instance Properties
 
-    // Values are stored resolved, only nested containers are resolved along with the whole container.
-    private var values: [Any] = []
-    private var containers: [(index: Int, container: DictionaryComponentContainer)] = []
+    private var elements = Elements()
 
     internal let context: DictionaryComponentEncoder
     internal let codingPathNode: CodingPathNode
@@ -21,7 +73,7 @@ internal final class DictionaryUnkeyedEncodingContainer:
     }
 
     internal var count: Int {
-        values.count
+        elements.values.count
     }
 
     // MARK: - Initializers
@@ -37,32 +89,12 @@ internal final class DictionaryUnkeyedEncodingContainer:
     // MARK: - Instance Methods
 
     @inline(__always)
-    private func append(_ element: consuming Any) {
-        values.append(element)
-    }
-
-    // `[Any]` cannot hold `nil` itself, so `nil` is kept as an element wrapped in `Any`.
-    @inline(__always)
-    private func element(from component: consuming Any?) -> Any {
-        switch consume component {
-        case let value?:
-            value
-
-        case nil:
-            Optional<Any>.none as Any
-        }
-    }
-
-    @inline(__always)
     private func collect(_ component: consuming Any?) {
-        append(element(from: component))
+        elements.append(component: component)
     }
 
     private func collect<Container: DictionaryComponentContainer>(_ container: Container) -> Container {
-        containers.append((values.count, container))
-
-        // A placeholder that is replaced with the resolved value of the container.
-        append(container)
+        elements.append(container: container)
 
         return container
     }
@@ -171,14 +203,10 @@ internal final class DictionaryUnkeyedEncodingContainer:
 
     // The values are taken rather than copied, as a container is resolved once, along with the value it encodes.
     internal func resolveValue() -> Any? {
-        var values: [Any] = []
+        var elements = Elements()
 
-        swap(&values, &self.values)
+        swap(&elements, &self.elements)
 
-        for (index, container) in containers {
-            values[index] = element(from: container.resolveValue())
-        }
-
-        return values
+        return elements.resolveValues()
     }
 }

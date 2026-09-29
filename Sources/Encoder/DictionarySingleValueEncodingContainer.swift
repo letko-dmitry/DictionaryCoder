@@ -7,6 +7,37 @@ internal final class DictionarySingleValueEncodingContainer:
     SingleValueEncodingContainer,
     DictionaryComponentContainer {
 
+    // MARK: - Type Methods
+
+    // Accesses to the stored properties of a class are checked for exclusivity at run time,
+    // so the component is checked and stored in one access.
+    @inline(__always)
+    private static func store(_ component: consuming DictionaryComponent, in slot: inout DictionaryComponent?) -> Bool {
+        guard slot == nil else {
+            return false
+        }
+
+        slot = component
+
+        return true
+    }
+
+    @inline(__always)
+    private static func container<Container: DictionaryComponentContainer>(
+        in slot: inout DictionaryComponent?,
+        makeContainer: () -> Container
+    ) -> Container {
+        if case let .container(container as Container) = slot {
+            return container
+        }
+
+        let container = makeContainer()
+
+        slot = .container(container)
+
+        return container
+    }
+
     // MARK: - Instance Properties
 
     private var component: DictionaryComponent?
@@ -36,7 +67,7 @@ internal final class DictionarySingleValueEncodingContainer:
 
     @inline(__always)
     private func collect(_ component: consuming Any?, of value: Any?) throws {
-        guard self.component == nil else {
+        guard Self.store(.value(component), in: &self.component) else {
             let errorContext = EncodingError.Context(
                 codingPath: codingPath,
                 debugDescription: "Single value container already has encoded value"
@@ -44,8 +75,6 @@ internal final class DictionarySingleValueEncodingContainer:
 
             throw EncodingError.invalidValue(value as Any, errorContext)
         }
-
-        self.component = .value(component)
     }
 
     // MARK: - SingleValueEncodingContainer
@@ -127,33 +156,17 @@ internal final class DictionarySingleValueEncodingContainer:
     // MARK: - Encoder
 
     internal func container<Key: CodingKey>(keyedBy keyType: Key.Type) -> KeyedEncodingContainer<Key> {
-        if case let .container(container as DictionaryAnyKeyedEncodingContainer) = component {
-            return KeyedEncodingContainer(DictionaryKeyedEncodingContainer<Key>(container: container))
+        let container = Self.container(in: &component) {
+            DictionaryAnyKeyedEncodingContainer(context: context, codingPathNode: CodingPathNode(position: position))
         }
-
-        let container = DictionaryAnyKeyedEncodingContainer(
-            context: context,
-            codingPathNode: CodingPathNode(position: position)
-        )
-
-        component = .container(container)
 
         return KeyedEncodingContainer(DictionaryKeyedEncodingContainer<Key>(container: container))
     }
 
     internal func unkeyedContainer() -> UnkeyedEncodingContainer {
-        if case let .container(container as DictionaryUnkeyedEncodingContainer) = component {
-            return container
+        Self.container(in: &component) {
+            DictionaryUnkeyedEncodingContainer(context: context, codingPathNode: CodingPathNode(position: position))
         }
-
-        let container = DictionaryUnkeyedEncodingContainer(
-            context: context,
-            codingPathNode: CodingPathNode(position: position)
-        )
-
-        component = .container(container)
-
-        return container
     }
 
     internal func singleValueContainer() -> SingleValueEncodingContainer {

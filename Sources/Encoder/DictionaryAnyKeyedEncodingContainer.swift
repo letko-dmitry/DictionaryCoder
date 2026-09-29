@@ -1,10 +1,45 @@
 internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentContainer {
 
+    // MARK: - Nested Types
+
+    // Accesses to the stored properties of a class are checked for exclusivity at run time,
+    // so the components are kept in one property, which every change accesses once.
+    fileprivate struct Components {
+
+        // MARK: - Instance Properties
+
+        // Values are stored resolved, only nested containers are resolved along with the whole container.
+        private var values: [String: Any] = [:]
+        fileprivate private(set) var containers: [String: DictionaryComponentContainer] = [:]
+
+        // MARK: - Instance Methods
+
+        @inline(__always)
+        fileprivate mutating func collect(_ component: consuming Any?, forKey key: String) {
+            if !containers.isEmpty {
+                containers[key] = nil
+            }
+
+            values[key] = component
+        }
+
+        fileprivate mutating func collect(_ container: DictionaryComponentContainer, forKey key: String) {
+            values[key] = nil
+            containers[key] = container
+        }
+
+        fileprivate consuming func resolveValues() -> [String: Any] {
+            for (key, container) in containers {
+                values[key] = container.resolveValue()
+            }
+
+            return values
+        }
+    }
+
     // MARK: - Instance Properties
 
-    // Values are stored resolved, only nested containers are resolved along with the whole container.
-    private var values: [String: Any] = [:]
-    private var containers: [String: DictionaryComponentContainer] = [:]
+    private var components = Components()
 
     internal let context: DictionaryComponentEncoder
     internal let codingPathNode: CodingPathNode
@@ -36,11 +71,6 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
         }
     }
 
-    private func collect(_ container: DictionaryComponentContainer, forEncodedKey key: String) {
-        values[key] = nil
-        containers[key] = container
-    }
-
     /// The nested container of the kind that is stored for the key, or a new one that replaces what is stored for it.
     private func nestedContainer<Key: CodingKey, Container: DictionaryComponentContainer>(
         forKey key: Key,
@@ -48,13 +78,13 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
     ) -> Container {
         let encodedKey = encodeKey(key)
 
-        if let container = containers[encodedKey] as? Container {
+        if let container = components.containers[encodedKey] as? Container {
             return container
         }
 
         let container = makeContainer(position(of: key))
 
-        collect(container, forEncodedKey: encodedKey)
+        components.collect(container, forKey: encodedKey)
 
         return container
     }
@@ -68,13 +98,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
     @inline(__always)
     internal func collect<Key: CodingKey>(_ component: consuming Any?, forKey key: Key) {
-        let key = encodeKey(key)
-
-        if !containers.isEmpty {
-            containers[key] = nil
-        }
-
-        values[key] = component
+        components.collect(component, forKey: encodeKey(key))
     }
 
     internal func nestedContainer<Key: CodingKey>(forKey key: Key) -> DictionaryAnyKeyedEncodingContainer {
@@ -99,14 +123,10 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
     // The values are taken rather than copied, as a container is resolved once, along with the value it encodes.
     internal func resolveValue() -> Any? {
-        var values: [String: Any] = [:]
+        var components = Components()
 
-        swap(&values, &self.values)
+        swap(&components, &self.components)
 
-        for (key, container) in containers {
-            values[key] = container.resolveValue()
-        }
-
-        return values
+        return components.resolveValues()
     }
 }
