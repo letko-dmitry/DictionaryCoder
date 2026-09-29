@@ -24,6 +24,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
     // MARK: - Instance Methods
 
+    @inline(__always)
     private func encodeKey<Key: CodingKey>(_ key: Key) -> String {
         switch options.keyEncodingStrategy {
         case .useDefaultKeys:
@@ -36,7 +37,8 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
     // MARK: -
 
-    internal func collectComponent<Key: CodingKey>(_ component: DictionaryComponent, forKey key: Key) {
+    @inline(__always)
+    internal func collectComponent<Key: CodingKey>(_ component: consuming DictionaryComponent, forKey key: Key) {
         components[encodeKey(key)] = component
     }
 
