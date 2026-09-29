@@ -1,40 +1,42 @@
 import Foundation
 
+import struct os.OSAllocatedUnfairLock
+
 public final class DictionaryEncoder: Sendable {
 
     // MARK: - Instance Properties
 
-    private let optionsMutex: Mutex<DictionaryEncodingOptions>
-    private let userInfoMutex: Mutex<[CodingUserInfoKey: Sendable]>
+    private let optionsLock: OSAllocatedUnfairLock<DictionaryEncodingOptions>
+    private let userInfoLock: OSAllocatedUnfairLock<[CodingUserInfoKey: Sendable]>
 
     public var dateEncodingStrategy: DictionaryDateEncodingStrategy {
-        get { optionsMutex.withLock { $0.dateEncodingStrategy } }
-        set { optionsMutex.withLock { $0.dateEncodingStrategy = newValue } }
+        get { optionsLock.withLock(\.dateEncodingStrategy) }
+        set { optionsLock.withLock { $0.dateEncodingStrategy = newValue } }
     }
 
     public var dataEncodingStrategy: DictionaryDataEncodingStrategy {
-        get { optionsMutex.withLock { $0.dataEncodingStrategy } }
-        set { optionsMutex.withLock { $0.dataEncodingStrategy = newValue } }
+        get { optionsLock.withLock(\.dataEncodingStrategy) }
+        set { optionsLock.withLock { $0.dataEncodingStrategy = newValue } }
     }
 
     public var nonConformingFloatEncodingStrategy: DictionaryNonConformingFloatEncodingStrategy {
-        get { optionsMutex.withLock { $0.nonConformingFloatEncodingStrategy } }
-        set { optionsMutex.withLock { $0.nonConformingFloatEncodingStrategy = newValue } }
+        get { optionsLock.withLock(\.nonConformingFloatEncodingStrategy) }
+        set { optionsLock.withLock { $0.nonConformingFloatEncodingStrategy = newValue } }
     }
 
     public var nilEncodingStrategy: DictionaryNilEncodingStrategy {
-        get { optionsMutex.withLock { $0.nilEncodingStrategy } }
-        set { optionsMutex.withLock { $0.nilEncodingStrategy = newValue } }
+        get { optionsLock.withLock(\.nilEncodingStrategy) }
+        set { optionsLock.withLock { $0.nilEncodingStrategy = newValue } }
     }
 
     public var keyEncodingStrategy: DictionaryKeyEncodingStrategy {
-        get { optionsMutex.withLock { $0.keyEncodingStrategy } }
-        set { optionsMutex.withLock { $0.keyEncodingStrategy = newValue } }
+        get { optionsLock.withLock(\.keyEncodingStrategy) }
+        set { optionsLock.withLock { $0.keyEncodingStrategy = newValue } }
     }
 
     public var userInfo: [CodingUserInfoKey: Sendable] {
-        get { userInfoMutex.withLock { $0 } }
-        set { userInfoMutex.withLock { $0 = newValue } }
+        get { userInfoLock.withLock(\.self) }
+        set { userInfoLock.withLock { $0 = newValue } }
     }
 
     // MARK: - Initializers
@@ -55,14 +57,14 @@ public final class DictionaryEncoder: Sendable {
             keyEncodingStrategy: keyEncodingStrategy
         )
 
-        self.optionsMutex = Mutex(value: options)
-        self.userInfoMutex = Mutex(value: userInfo)
+        self.optionsLock = OSAllocatedUnfairLock(initialState: options)
+        self.userInfoLock = OSAllocatedUnfairLock(initialState: userInfo)
     }
 
     // MARK: - Instance Methods
 
     public func encode<T: Encodable>(_ value: T) throws -> [String: Sendable] {
-        let options = optionsMutex.withLock { $0 }
+        let options = optionsLock.withLock(\.self)
 
         let encoder = DictionarySingleValueEncodingContainer(
             context: DictionaryComponentEncoder(options: options, userInfo: userInfo),
@@ -87,7 +89,7 @@ public final class DictionaryEncoder: Sendable {
         _ value: T,
         configuration: T.EncodingConfiguration
     ) throws -> [String: Sendable] {
-        let options = optionsMutex.withLock { $0 }
+        let options = optionsLock.withLock(\.self)
 
         let encoder = DictionarySingleValueEncodingContainer(
             context: DictionaryComponentEncoder(options: options, userInfo: userInfo),
