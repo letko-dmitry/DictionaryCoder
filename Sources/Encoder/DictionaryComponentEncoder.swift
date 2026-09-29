@@ -81,7 +81,7 @@ internal final class DictionaryComponentEncoder {
             return encodePrimitiveValue(date.timeIntervalSince1970, at: codingPathNode())
 
         case .iso8601:
-            return encodePrimitiveValue(ISO8601DateFormatter.internetDateTime.string(from: date), at: codingPathNode())
+            return encodePrimitiveValue(Date.ISO8601FormatStyle.internetDateTime.format(date), at: codingPathNode())
 
         case let .formatted(dateFormatter):
             return encodePrimitiveValue(dateFormatter.string(from: date), at: codingPathNode())
@@ -353,19 +353,13 @@ internal final class DictionaryComponentEncoder {
     }
 }
 
-extension ISO8601DateFormatter {
+extension Date.ISO8601FormatStyle {
 
     // MARK: - Type Properties
 
-    // Configured once and then only used to format and parse dates, which is thread-safe.
-    internal nonisolated(unsafe) static let internetDateTime: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-
-        formatter.formatOptions = .withInternetDateTime
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-
-        return formatter
-    }()
+    // Creating a style costs nearly as much as formatting a date with it, so a single one is shared.
+    // It formats dates as `JSONEncoder` does, dropping fractions of a second rather than rounding them.
+    internal static let internetDateTime = Self()
 }
 
 extension EncodingError {

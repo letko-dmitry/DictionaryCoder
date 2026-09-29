@@ -255,7 +255,7 @@ internal final class DictionaryComponentDecoder {
         case .iso8601:
             let formattedDate = try decodePrimitiveValue(of: String.self, from: component, at: codingPathNode())
 
-            guard let date = try? Date.ISO8601FormatStyle().parse(formattedDate) else {
+            guard let date = try? Date.ISO8601FormatStyle.internetDateTime.parse(formattedDate) else {
                 let errorContext = DecodingError.Context(
                     codingPath: codingPathNode().path,
                     debugDescription: "Expected date string to be ISO8601-formatted."
