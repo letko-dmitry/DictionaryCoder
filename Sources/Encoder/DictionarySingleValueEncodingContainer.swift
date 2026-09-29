@@ -11,7 +11,7 @@ internal final class DictionarySingleValueEncodingContainer:
 
     // Accesses to the stored properties of a class are checked for exclusivity at run time,
     // so the component is checked and stored in one access.
-    @inline(__always)
+    @inline(always)
     private static func store(_ component: consuming DictionaryComponent, in slot: inout DictionaryComponent?) -> Bool {
         guard slot == nil else {
             return false
@@ -22,7 +22,7 @@ internal final class DictionarySingleValueEncodingContainer:
         return true
     }
 
-    @inline(__always)
+    @inline(always)
     private static func container<Container: DictionaryComponentContainer>(
         in slot: inout DictionaryComponent?,
         makeContainer: () -> Container
@@ -65,7 +65,7 @@ internal final class DictionarySingleValueEncodingContainer:
 
     // MARK: - Instance Methods
 
-    @inline(__always)
+    @inline(always)
     private func collect(_ component: consuming Any?, of value: Any?) throws {
         guard Self.store(.value(component), in: &self.component) else {
             let errorContext = EncodingError.Context(

@@ -18,7 +18,7 @@ internal final class DictionaryComponentDecoder {
 
     // MARK: - Instance Methods
 
-    @inline(__always)
+    @inline(always)
     private func decodePrimitiveValue<T: Decodable>(
         of type: T.Type = T.self,
         from component: Any?,
@@ -47,7 +47,7 @@ internal final class DictionaryComponentDecoder {
 
     // Bridging a Foundation object through `as? T` looks the bridging up on every call,
     // while bridging one known to be of the class that `T` bridges from calls the same conversion directly.
-    @inline(__always)
+    @inline(always)
     private func bridgeFoundationComponent<T>(_ component: Any, of componentType: Any.Type, to type: T.Type) -> T? {
         if T.self == String.self {
             guard componentType is NSString.Type, let string = component as? NSString else {
@@ -244,7 +244,7 @@ internal final class DictionaryComponentDecoder {
 
     // MARK: -
 
-    @inline(__always)
+    @inline(always)
     internal func decodeNilComponent(from component: Any?) -> Bool {
         guard let component else {
             return true
@@ -255,7 +255,7 @@ internal final class DictionaryComponentDecoder {
     }
 
     /// Decodes a string, a boolean or an integer that fits in 64 bits.
-    @inline(__always)
+    @inline(always)
     internal func decodePrimitive<T: Decodable>(
         _ type: T.Type,
         from component: Any?,

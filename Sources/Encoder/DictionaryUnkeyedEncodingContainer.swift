@@ -11,7 +11,7 @@ internal final class DictionaryUnkeyedEncodingContainer:
         // MARK: - Type Methods
 
         // `[Any]` cannot hold `nil` itself, so `nil` is kept as an element wrapped in `Any`.
-        @inline(__always)
+        @inline(always)
         private static func element(from component: consuming Any?) -> Any {
             switch consume component {
             case let value?:
@@ -30,7 +30,7 @@ internal final class DictionaryUnkeyedEncodingContainer:
 
         // MARK: - Instance Methods
 
-        @inline(__always)
+        @inline(always)
         private mutating func append(_ element: consuming Any) {
             // Most unkeyed containers of compact encodings hold a couple of elements, so room for two is reserved
             // up front. It saves a reallocation for every container of two and more elements, which grow as usual,
@@ -42,7 +42,7 @@ internal final class DictionaryUnkeyedEncodingContainer:
             values.append(element)
         }
 
-        @inline(__always)
+        @inline(always)
         fileprivate mutating func append(component: consuming Any?) {
             append(Self.element(from: component))
         }
@@ -74,7 +74,7 @@ internal final class DictionaryUnkeyedEncodingContainer:
         codingPathNode.path
     }
 
-    @inline(__always)
+    @inline(always)
     internal var currentPosition: CodingPosition {
         CodingPosition(container: codingPathNode, key: .index(count))
     }
@@ -95,7 +95,7 @@ internal final class DictionaryUnkeyedEncodingContainer:
 
     // MARK: - Instance Methods
 
-    @inline(__always)
+    @inline(always)
     private func collect(_ component: consuming Any?) {
         elements.append(component: component)
     }

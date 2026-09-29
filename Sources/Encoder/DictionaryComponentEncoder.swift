@@ -212,7 +212,7 @@ internal final class DictionaryComponentEncoder {
 
     /// Encodes a value of any type: values that dictionaries hold as they are, such as numbers and arrays of them,
     /// are kept in place, and other values encode themselves with encoders of their own.
-    @inline(__always)
+    @inline(always)
     internal func encode<T: Encodable>(
         _ value: T,
         at position: @autoclosure () -> CodingPosition

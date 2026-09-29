@@ -50,7 +50,7 @@ internal enum DictionaryUnkeyedComponents {
 
     // MARK: - Subscripts
 
-    @inline(__always)
+    @inline(always)
     internal subscript(index: Int) -> Any? {
         switch self {
         case let .native(components):
@@ -86,7 +86,7 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
         decoder.codingPath
     }
 
-    @inline(__always)
+    @inline(always)
     internal var currentPosition: CodingPosition {
         CodingPosition(container: decoder, key: .index(currentIndex))
     }
@@ -108,7 +108,7 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
 
     // MARK: - Instance Methods
 
-    @inline(__always)
+    @inline(always)
     private func peekNextComponent() throws -> Any? {
         guard currentIndex < components.count else {
             let errorContext = DecodingError.Context(
@@ -124,14 +124,14 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
 
     // Returns a value decoded from the current component and moves to the next one,
     // so that the container stays at a component that fails to decode.
-    @inline(__always)
+    @inline(always)
     private func advancing<T>(_ value: consuming T) -> T {
         currentIndex += 1
 
         return value
     }
 
-    @inline(__always)
+    @inline(always)
     private func superDecoder(for component: consuming Any?) -> DictionarySingleValueDecodingContainer {
         DictionarySingleValueDecodingContainer(
             component: component,

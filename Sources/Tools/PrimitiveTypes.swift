@@ -86,7 +86,7 @@ internal enum PrimitiveTypes {
 
     /// Whether values of the type are stored in dictionaries as they are,
     /// so they are encoded and decoded without nested containers.
-    @inline(__always)
+    @inline(always)
     internal static func contains(_ type: Any.Type) -> Bool {
         type == String.self
             || type == Bool.self

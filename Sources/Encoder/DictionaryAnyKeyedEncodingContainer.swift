@@ -14,7 +14,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
         // MARK: - Instance Methods
 
-        @inline(__always)
+        @inline(always)
         fileprivate mutating func collect(_ component: consuming Any?, forKey key: String) {
             if !containers.isEmpty {
                 containers[key] = nil
@@ -60,7 +60,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
     // MARK: - Instance Methods
 
-    @inline(__always)
+    @inline(always)
     private func encodeKey<Key: CodingKey>(_ key: Key) -> String {
         switch context.options.keyEncodingStrategy {
         case .useDefaultKeys:
@@ -91,12 +91,12 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
     // MARK: -
 
-    @inline(__always)
+    @inline(always)
     internal func position(of key: CodingKey) -> CodingPosition {
         CodingPosition(container: codingPathNode, key: .key(key))
     }
 
-    @inline(__always)
+    @inline(always)
     internal func collect<Key: CodingKey>(_ component: consuming Any?, forKey key: Key) {
         components.collect(component, forKey: encodeKey(key))
     }
