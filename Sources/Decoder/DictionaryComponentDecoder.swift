@@ -147,7 +147,7 @@ internal final class DictionaryComponentDecoder {
     }
 
     // `NSNumber` does not bridge 128-bit integers, so other integers are converted exactly.
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     private func decodeWideInteger<T: FixedWidthInteger & Decodable>(
         of type: T.Type = T.self,
         from component: Any?,
@@ -254,15 +254,8 @@ internal final class DictionaryComponentDecoder {
 
         case .iso8601:
             let formattedDate = try decodePrimitiveValue(of: String.self, from: component, at: codingPathNode())
-            let date: Date?
 
-            if #available(macOS 12, iOS 15, tvOS 15, watchOS 8, *) {
-                date = try? Date.ISO8601FormatStyle().parse(formattedDate)
-            } else {
-                date = ISO8601DateFormatter.internetDateTime.date(from: formattedDate)
-            }
-
-            guard let date else {
+            guard let date = try? Date.ISO8601FormatStyle().parse(formattedDate) else {
                 let errorContext = DecodingError.Context(
                     codingPath: codingPathNode().path,
                     debugDescription: "Expected date string to be ISO8601-formatted."
@@ -394,7 +387,7 @@ internal final class DictionaryComponentDecoder {
         try decodePrimitiveValue(from: component, at: codingPathNode())
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     @inline(__always)
     internal func decodeComponentValue(
         from component: Any?,
@@ -443,7 +436,7 @@ internal final class DictionaryComponentDecoder {
         try decodePrimitiveValue(from: component, at: codingPathNode())
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     @inline(__always)
     internal func decodeComponentValue(
         from component: Any?,
@@ -511,7 +504,7 @@ internal final class DictionaryComponentDecoder {
                 return array as! T
             }
 
-            if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *) {
+            if #available(watchOS 11.0, *) {
                 if type == Int128.self {
                     return try decodeWideInteger(from: component, at: codingPathNode()) as Int128 as! T
                 }

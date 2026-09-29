@@ -235,7 +235,7 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
     }
 
     func testThatDecoderSucceedsWhenDecodingWideIntegers() throws {
-        guard #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *) else {
+        guard #available(watchOS 11.0, *) else {
             throw XCTSkip("Int128 and UInt128 are unavailable")
         }
 
@@ -836,7 +836,7 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
     }
 
     func testThatDecoderFailsWhenDecodingWideIntegerThatDoesNotFit() throws {
-        guard #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *) else {
+        guard #available(watchOS 11.0, *) else {
             throw XCTSkip("Int128 and UInt128 are unavailable")
         }
 
