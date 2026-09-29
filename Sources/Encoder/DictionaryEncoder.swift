@@ -63,7 +63,10 @@ public final class DictionaryEncoder: Sendable {
 
     // MARK: - Instance Methods
 
-    public func encode<T: Encodable>(_ value: T) throws -> [String: Sendable] {
+    private func encodeRootValue<T>(
+        _ value: T,
+        encoding: (_ encoder: Encoder) throws -> Void
+    ) throws -> [String: Sendable] {
         let options = optionsLock.withLock(\.self)
 
         let encoder = DictionarySingleValueEncodingContainer(
@@ -71,7 +74,7 @@ public final class DictionaryEncoder: Sendable {
             codingPathNode: .root
         )
 
-        try value.encode(to: encoder)
+        try encoding(encoder)
 
         guard let dictionary = encoder.resolveValue() as? [String: Sendable] else {
             let errorContext = EncodingError.Context(
@@ -85,28 +88,18 @@ public final class DictionaryEncoder: Sendable {
         return dictionary
     }
 
+    public func encode<T: Encodable>(_ value: T) throws -> [String: Sendable] {
+        try encodeRootValue(value) { encoder in
+            try value.encode(to: encoder)
+        }
+    }
+
     public func encode<T: EncodableWithConfiguration>(
         _ value: T,
         configuration: T.EncodingConfiguration
     ) throws -> [String: Sendable] {
-        let options = optionsLock.withLock(\.self)
-
-        let encoder = DictionarySingleValueEncodingContainer(
-            context: DictionaryComponentEncoder(options: options, userInfo: userInfo),
-            codingPathNode: .root
-        )
-
-        try value.encode(to: encoder, configuration: configuration)
-
-        guard let dictionary = encoder.resolveValue() as? [String: Sendable] else {
-            let errorContext = EncodingError.Context(
-                codingPath: [],
-                debugDescription: "Root component cannot be encoded in Dictionary"
-            )
-
-            throw EncodingError.invalidValue(value, errorContext)
+        try encodeRootValue(value) { encoder in
+            try value.encode(to: encoder, configuration: configuration)
         }
-
-        return dictionary
     }
 }

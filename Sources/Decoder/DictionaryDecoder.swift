@@ -56,19 +56,21 @@ public final class DictionaryDecoder: Sendable {
 
     // MARK: - Instance Methods
 
-    public func decode<T: Decodable>(
-        _ type: T.Type = T.self,
-        from dictionary: [String: Any]
-    ) throws -> T {
+    private func rootDecoder(for dictionary: [String: Any]) -> DictionarySingleValueDecodingContainer {
         let options = optionsLock.withLock(\.self)
 
-        let decoder = DictionarySingleValueDecodingContainer(
+        return DictionarySingleValueDecodingContainer(
             component: dictionary,
             context: DictionaryComponentDecoder(options: options, userInfo: userInfo),
             codingPathNode: .root
         )
+    }
 
-        return try T(from: decoder)
+    public func decode<T: Decodable>(
+        _ type: T.Type = T.self,
+        from dictionary: [String: Any]
+    ) throws -> T {
+        try T(from: rootDecoder(for: dictionary))
     }
 
     public func decode<T: Decodable>(from dictionary: [String: Any]) throws -> T {
@@ -80,14 +82,6 @@ public final class DictionaryDecoder: Sendable {
         from dictionary: [String: Any],
         configuration: T.DecodingConfiguration
     ) throws -> T {
-        let options = optionsLock.withLock(\.self)
-
-        let decoder = DictionarySingleValueDecodingContainer(
-            component: dictionary,
-            context: DictionaryComponentDecoder(options: options, userInfo: userInfo),
-            codingPathNode: .root
-        )
-
-        return try T(from: decoder, configuration: configuration)
+        try T(from: rootDecoder(for: dictionary), configuration: configuration)
     }
 }
