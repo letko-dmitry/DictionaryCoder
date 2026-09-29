@@ -38,11 +38,17 @@ internal final class DictionaryUnkeyedEncodingContainer:
 
     // MARK: - Instance Methods
 
+    // `[Any]` cannot hold `nil` itself, so `nil` is kept as an element wrapped in `Any`.
+    @inline(__always)
+    private func element(from value: Any?) -> Any {
+        value ?? value as Any
+    }
+
     @inline(__always)
     private func collectComponent(_ component: consuming DictionaryComponent) {
         switch component {
         case let .value(value):
-            values.append(value ?? value as Any)
+            values.append(element(from: value))
 
         case let .container(container):
             containers.append((values.count, container))
@@ -158,12 +164,8 @@ internal final class DictionaryUnkeyedEncodingContainer:
     // MARK: - DictionaryComponentContainer
 
     internal func resolveValue() -> Any? {
-        var values = values
-
         for (index, container) in containers {
-            let value = container.resolveValue()
-
-            values[index] = value ?? value as Any
+            values[index] = element(from: container.resolveValue())
         }
 
         return values
