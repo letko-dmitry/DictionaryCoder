@@ -5,8 +5,8 @@ internal indirect enum CodingPathNode {
     // MARK: - Enumeration Cases
 
     case root
-    case key(CodingKey, parent: CodingPathNode)
-    case index(Int, parent: CodingPathNode)
+    case key(CodingKey, parent: Self)
+    case index(Int, parent: Self)
 
     // MARK: - Instance Properties
 

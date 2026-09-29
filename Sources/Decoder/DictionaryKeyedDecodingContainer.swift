@@ -1,5 +1,95 @@
 import Foundation
 
+/// Components of a keyed container. Foundation dictionaries, such as the ones from `JSONSerialization`
+/// or property lists, are read in place, as converting one to `[String: Any]` bridges all of its keys up front.
+internal enum DictionaryKeyedComponents {
+
+    // MARK: - Enumeration Cases
+
+    case native([String: Any])
+    case foundation(NSDictionary)
+
+    // MARK: - Instance Properties
+
+    internal var count: Int {
+        switch self {
+        case let .native(components):
+            components.count
+
+        case let .foundation(components):
+            components.count
+        }
+    }
+
+    internal var keysAndValues: [(key: String, value: Any)] {
+        switch self {
+        case let .native(components):
+            Array(components)
+
+        case let .foundation(components):
+            components.compactMap { key, value in (key as? String).map { ($0, value) } }
+        }
+    }
+
+    // MARK: - Initializers
+
+    internal init?(_ component: Any?) {
+        guard let component else {
+            return nil
+        }
+
+        // Checking the type first, as `as? [String: Any]` would bridge a Foundation dictionary as a whole.
+        if type(of: component) is NSDictionary.Type, let components = component as? NSDictionary {
+            self = .foundation(components)
+        } else if let components = component as? [String: Any] {
+            self = .native(components)
+        } else {
+            return nil
+        }
+    }
+
+    // MARK: - Instance Methods
+
+    internal func forEach(_ body: (_ key: String, _ component: Any) throws -> Void) rethrows {
+        switch self {
+        case let .native(components):
+            for (key, component) in components {
+                try body(key, component)
+            }
+
+        case let .foundation(components):
+            for (key, component) in components {
+                if let key = key as? String {
+                    try body(key, component)
+                }
+            }
+        }
+    }
+
+    internal func compactMapKeys<T>(_ transform: (_ key: String) -> T?) -> [T] {
+        switch self {
+        case let .native(components):
+            components.keys.compactMap(transform)
+
+        case let .foundation(components):
+            components.allKeys.compactMap { ($0 as? String).flatMap(transform) }
+        }
+    }
+
+    // MARK: - Subscripts
+
+    @inline(__always)
+    internal subscript(key: String) -> Any? {
+        switch self {
+        case let .native(components):
+            components[key]
+
+        case let .foundation(components):
+            components.object(forKey: key)
+        }
+    }
+}
+
 internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
 
     // MARK: - Instance Properties
@@ -279,96 +369,6 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
 
     internal func superDecoder() throws -> Decoder {
         try superDecoder(forAnyKey: AnyCodingKey.super)
-    }
-}
-
-/// Components of a keyed container. Foundation dictionaries, such as the ones from `JSONSerialization`
-/// or property lists, are read in place, as converting one to `[String: Any]` bridges all of its keys up front.
-internal enum DictionaryKeyedComponents {
-
-    // MARK: - Enumeration Cases
-
-    case native([String: Any])
-    case foundation(NSDictionary)
-
-    // MARK: - Instance Properties
-
-    internal var count: Int {
-        switch self {
-        case let .native(components):
-            components.count
-
-        case let .foundation(components):
-            components.count
-        }
-    }
-
-    internal var keysAndValues: [(key: String, value: Any)] {
-        switch self {
-        case let .native(components):
-            Array(components)
-
-        case let .foundation(components):
-            components.compactMap { key, value in (key as? String).map { ($0, value) } }
-        }
-    }
-
-    // MARK: - Initializers
-
-    internal init?(_ component: Any?) {
-        guard let component else {
-            return nil
-        }
-
-        // Checking the type first, as `as? [String: Any]` would bridge a Foundation dictionary as a whole.
-        if type(of: component) is NSDictionary.Type, let components = component as? NSDictionary {
-            self = .foundation(components)
-        } else if let components = component as? [String: Any] {
-            self = .native(components)
-        } else {
-            return nil
-        }
-    }
-
-    // MARK: - Instance Methods
-
-    internal func forEach(_ body: (_ key: String, _ component: Any) throws -> Void) rethrows {
-        switch self {
-        case let .native(components):
-            for (key, component) in components {
-                try body(key, component)
-            }
-
-        case let .foundation(components):
-            for (key, component) in components {
-                if let key = key as? String {
-                    try body(key, component)
-                }
-            }
-        }
-    }
-
-    internal func compactMapKeys<T>(_ transform: (_ key: String) -> T?) -> [T] {
-        switch self {
-        case let .native(components):
-            components.keys.compactMap(transform)
-
-        case let .foundation(components):
-            components.allKeys.compactMap { ($0 as? String).flatMap(transform) }
-        }
-    }
-
-    // MARK: - Subscripts
-
-    @inline(__always)
-    internal subscript(key: String) -> Any? {
-        switch self {
-        case let .native(components):
-            components[key]
-
-        case let .foundation(components):
-            components.object(forKey: key)
-        }
     }
 }
 

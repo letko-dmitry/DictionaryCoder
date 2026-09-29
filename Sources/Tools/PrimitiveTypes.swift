@@ -1,31 +1,8 @@
-internal enum PrimitiveTypes {
-
-    // MARK: - Type Methods
-
-    /// Whether values of the type are stored in dictionaries as they are,
-    /// so they are encoded and decoded without nested containers.
-    @inline(__always)
-    internal static func contains(_ type: Any.Type) -> Bool {
-        type == String.self
-            || type == Bool.self
-            || type == Int.self
-            || type == Int8.self
-            || type == Int16.self
-            || type == Int32.self
-            || type == Int64.self
-            || type == UInt.self
-            || type == UInt8.self
-            || type == UInt16.self
-            || type == UInt32.self
-            || type == UInt64.self
-    }
-}
-
-// Identifiers of generic types are cached, as looking up their metadata on every call is costly.
 internal struct PrimitiveArrayType {
 
     // MARK: - Type Properties
 
+    // Identifiers of generic types are cached, as looking up their metadata on every call is costly.
     internal static let identifiers = Self()
 
     // MARK: - Type Methods
@@ -35,8 +12,8 @@ internal struct PrimitiveArrayType {
 
         switch ObjectIdentifier(type) {
         case identifiers.string, identifiers.bool, identifiers.double, identifiers.float,
-             identifiers.int, identifiers.int8, identifiers.int16, identifiers.int32, identifiers.int64,
-             identifiers.uInt, identifiers.uInt8, identifiers.uInt16, identifiers.uInt32, identifiers.uInt64:
+            identifiers.int, identifiers.int8, identifiers.int16, identifiers.int32, identifiers.int64,
+            identifiers.uInt, identifiers.uInt8, identifiers.uInt16, identifiers.uInt32, identifiers.uInt64:
             return true
 
         default:
@@ -62,11 +39,11 @@ internal struct PrimitiveArrayType {
     internal let float = ObjectIdentifier([Float].self)
 }
 
-// Identifiers of generic types are cached, as looking up their metadata on every call is costly.
 internal struct PrimitiveDictionaryType {
 
     // MARK: - Type Properties
 
+    // Identifiers of generic types are cached, as looking up their metadata on every call is costly.
     internal static let identifiers = Self()
 
     // MARK: - Type Methods
@@ -76,8 +53,8 @@ internal struct PrimitiveDictionaryType {
 
         switch ObjectIdentifier(type) {
         case identifiers.string, identifiers.bool, identifiers.double, identifiers.float,
-             identifiers.int, identifiers.int8, identifiers.int16, identifiers.int32, identifiers.int64,
-             identifiers.uInt, identifiers.uInt8, identifiers.uInt16, identifiers.uInt32, identifiers.uInt64:
+            identifiers.int, identifiers.int8, identifiers.int16, identifiers.int32, identifiers.int64,
+            identifiers.uInt, identifiers.uInt8, identifiers.uInt16, identifiers.uInt32, identifiers.uInt64:
             return true
 
         default:
@@ -101,4 +78,27 @@ internal struct PrimitiveDictionaryType {
     internal let uInt64 = ObjectIdentifier([String: UInt64].self)
     internal let double = ObjectIdentifier([String: Double].self)
     internal let float = ObjectIdentifier([String: Float].self)
+}
+
+internal enum PrimitiveTypes {
+
+    // MARK: - Type Methods
+
+    /// Whether values of the type are stored in dictionaries as they are,
+    /// so they are encoded and decoded without nested containers.
+    @inline(__always)
+    internal static func contains(_ type: Any.Type) -> Bool {
+        type == String.self
+            || type == Bool.self
+            || type == Int.self
+            || type == Int8.self
+            || type == Int16.self
+            || type == Int32.self
+            || type == Int64.self
+            || type == UInt.self
+            || type == UInt8.self
+            || type == UInt16.self
+            || type == UInt32.self
+            || type == UInt64.self
+    }
 }

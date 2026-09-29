@@ -169,51 +169,51 @@ internal final class DictionaryComponentEncoder {
 
         switch ObjectIdentifier(T.self) {
         case identifiers.string:
-            return (value as! [String]).map { $0 }
+            return (value as! [String]).map { $0 as Any }
 
         case identifiers.bool:
-            return (value as! [Bool]).map { $0 }
+            return (value as! [Bool]).map { $0 as Any }
 
         case identifiers.int:
-            return (value as! [Int]).map { $0 }
+            return (value as! [Int]).map { $0 as Any }
 
         case identifiers.int8:
-            return (value as! [Int8]).map { $0 }
+            return (value as! [Int8]).map { $0 as Any }
 
         case identifiers.int16:
-            return (value as! [Int16]).map { $0 }
+            return (value as! [Int16]).map { $0 as Any }
 
         case identifiers.int32:
-            return (value as! [Int32]).map { $0 }
+            return (value as! [Int32]).map { $0 as Any }
 
         case identifiers.int64:
-            return (value as! [Int64]).map { $0 }
+            return (value as! [Int64]).map { $0 as Any }
 
         case identifiers.uInt:
-            return (value as! [UInt]).map { $0 }
+            return (value as! [UInt]).map { $0 as Any }
 
         case identifiers.uInt8:
-            return (value as! [UInt8]).map { $0 }
+            return (value as! [UInt8]).map { $0 as Any }
 
         case identifiers.uInt16:
-            return (value as! [UInt16]).map { $0 }
+            return (value as! [UInt16]).map { $0 as Any }
 
         case identifiers.uInt32:
-            return (value as! [UInt32]).map { $0 }
+            return (value as! [UInt32]).map { $0 as Any }
 
         case identifiers.uInt64:
-            return (value as! [UInt64]).map { $0 }
+            return (value as! [UInt64]).map { $0 as Any }
 
         // Non-finite numbers depend on the strategy, so such arrays are encoded element by element.
         case identifiers.double:
             let values = value as! [Double]
 
-            return values.allSatisfy(\.isFinite) ? values.map { $0 } : nil
+            return values.allSatisfy(\.isFinite) ? values.map { $0 as Any } : nil
 
         case identifiers.float:
             let values = value as! [Float]
 
-            return values.allSatisfy(\.isFinite) ? values.map { $0 } : nil
+            return values.allSatisfy(\.isFinite) ? values.map { $0 as Any } : nil
 
         default:
             return nil
@@ -453,6 +453,6 @@ extension EncodingError {
             Use DictionaryNonConformingFloatEncodingStrategy.convertToString to specify how the value should be encoded.
             """
 
-        return .invalidValue(value, EncodingError.Context(codingPath: codingPath, debugDescription: debugDescription))
+        return .invalidValue(value, Context(codingPath: codingPath, debugDescription: debugDescription))
     }
 }
