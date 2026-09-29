@@ -63,7 +63,7 @@ public final class DictionaryDecoder: Sendable {
         let decoder = DictionarySingleValueDecodingContainer(
             component: dictionary,
             context: DictionaryComponentDecoder(options: options, userInfo: userInfo),
-            codingPath: []
+            codingPathNode: .root
         )
 
         return try T(from: decoder)
@@ -84,7 +84,7 @@ public final class DictionaryDecoder: Sendable {
         let decoder = DictionarySingleValueDecodingContainer(
             component: dictionary,
             context: DictionaryComponentDecoder(options: options, userInfo: userInfo),
-            codingPath: []
+            codingPathNode: .root
         )
 
         return try T(from: decoder, configuration: configuration)

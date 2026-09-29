@@ -66,7 +66,7 @@ public final class DictionaryEncoder: Sendable {
 
         let encoder = DictionarySingleValueEncodingContainer(
             context: DictionaryComponentEncoder(options: options, userInfo: userInfo),
-            codingPath: []
+            codingPathNode: .root
         )
 
         try value.encode(to: encoder)
@@ -92,7 +92,7 @@ public final class DictionaryEncoder: Sendable {
 
         let encoder = DictionarySingleValueEncodingContainer(
             context: DictionaryComponentEncoder(options: options, userInfo: userInfo),
-            codingPath: []
+            codingPathNode: .root
         )
 
         try value.encode(to: encoder, configuration: configuration)

@@ -9,16 +9,20 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
     private var containers: [String: DictionaryComponentContainer] = [:]
 
     internal let context: DictionaryComponentEncoder
-    internal let codingPath: [CodingKey]
+    internal let codingPathNode: CodingPathNode
+
+    internal var codingPath: [CodingKey] {
+        codingPathNode.path
+    }
 
     // MARK: - Initializers
 
     internal init(
         context: DictionaryComponentEncoder,
-        codingPath: [CodingKey]
+        codingPathNode: CodingPathNode
     ) {
         self.context = context
-        self.codingPath = codingPath
+        self.codingPathNode = codingPathNode
     }
 
     // MARK: - Instance Methods
@@ -30,7 +34,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
             return key.stringValue
 
         case let .custom(closure):
-            return closure(codingPath.appending(key)).stringValue
+            return closure(codingPathNode.appending(key).path).stringValue
         }
     }
 
@@ -64,7 +68,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
         let container = DictionaryAnyKeyedEncodingContainer(
             context: context,
-            codingPath: codingPath.appending(key)
+            codingPathNode: codingPathNode.appending(key)
         )
 
         collectComponent(.container(container), forKey: key)
@@ -79,7 +83,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
         let container = DictionaryUnkeyedEncodingContainer(
             context: context,
-            codingPath: codingPath.appending(key)
+            codingPathNode: codingPathNode.appending(key)
         )
 
         collectComponent(.container(container), forKey: key)
@@ -94,7 +98,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
         let encoder = DictionarySingleValueEncodingContainer(
             context: context,
-            codingPath: codingPath.appending(key)
+            codingPathNode: codingPathNode.appending(key)
         )
 
         collectComponent(.container(encoder), forKey: key)
