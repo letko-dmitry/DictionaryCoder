@@ -8,7 +8,11 @@ internal final class DictionarySingleValueDecodingContainer:
 
     internal let component: Any?
     internal let context: DictionaryComponentDecoder
-    internal let codingPath: [CodingKey]
+    internal let codingPathNode: CodingPathNode
+
+    internal var codingPath: [CodingKey] {
+        codingPathNode.path
+    }
 
     internal var userInfo: [CodingUserInfoKey: Any] {
         context.userInfo
@@ -19,11 +23,11 @@ internal final class DictionarySingleValueDecodingContainer:
     internal init(
         component: Any?,
         context: DictionaryComponentDecoder,
-        codingPath: [CodingKey]
+        codingPathNode: CodingPathNode
     ) {
         self.component = component
         self.context = context
-        self.codingPath = codingPath
+        self.codingPathNode = codingPathNode
     }
 
     // MARK: - Instance Methods
@@ -33,63 +37,63 @@ internal final class DictionarySingleValueDecodingContainer:
     }
 
     internal func decode(_ type: Bool.Type) throws -> Bool {
-        try context.decodeComponentValue(from: component, at: codingPath)
+        try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
     internal func decode(_ type: Int.Type) throws -> Int {
-        try context.decodeComponentValue(from: component, at: codingPath)
+        try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
     internal func decode(_ type: Int8.Type) throws -> Int8 {
-        try context.decodeComponentValue(from: component, at: codingPath)
+        try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
     internal func decode(_ type: Int16.Type) throws -> Int16 {
-        try context.decodeComponentValue(from: component, at: codingPath)
+        try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
     internal func decode(_ type: Int32.Type) throws -> Int32 {
-        try context.decodeComponentValue(from: component, at: codingPath)
+        try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
     internal func decode(_ type: Int64.Type) throws -> Int64 {
-        try context.decodeComponentValue(from: component, at: codingPath)
+        try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
     internal func decode(_ type: UInt.Type) throws -> UInt {
-        try context.decodeComponentValue(from: component, at: codingPath)
+        try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
     internal func decode(_ type: UInt8.Type) throws -> UInt8 {
-        try context.decodeComponentValue(from: component, at: codingPath)
+        try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
     internal func decode(_ type: UInt16.Type) throws -> UInt16 {
-        try context.decodeComponentValue(from: component, at: codingPath)
+        try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
     internal func decode(_ type: UInt32.Type) throws -> UInt32 {
-        try context.decodeComponentValue(from: component, at: codingPath)
+        try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
     internal func decode(_ type: UInt64.Type) throws -> UInt64 {
-        try context.decodeComponentValue(from: component, at: codingPath)
+        try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
     internal func decode(_ type: Double.Type) throws -> Double {
-        try context.decodeComponentValue(from: component, at: codingPath)
+        try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
     internal func decode(_ type: Float.Type) throws -> Float {
-        try context.decodeComponentValue(from: component, at: codingPath)
+        try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
     internal func decode(_ type: String.Type) throws -> String {
-        try context.decodeComponentValue(from: component, at: codingPath)
+        try context.decodeComponentValue(from: component, at: codingPathNode)
     }
 
     internal func decode<T: Decodable>(_ type: T.Type) throws -> T {
-        try context.decodeComponentValue(of: type, from: component, at: codingPath)
+        try context.decodeComponentValue(of: type, from: component, at: codingPathNode)
     }
 
     // MARK: - Decoder
@@ -102,7 +106,7 @@ internal final class DictionarySingleValueDecodingContainer:
         let container = DictionaryKeyedDecodingContainer<Key>(
             components: components,
             context: context,
-            codingPath: codingPath
+            codingPathNode: codingPathNode
         )
 
         return KeyedDecodingContainer(container)
@@ -116,7 +120,7 @@ internal final class DictionarySingleValueDecodingContainer:
         return DictionaryUnkeyedDecodingContainer(
             components: components,
             context: context,
-            codingPath: codingPath
+            codingPathNode: codingPathNode
         )
     }
 
