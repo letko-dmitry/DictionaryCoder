@@ -6,19 +6,16 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
     private var components: [String: DictionaryComponent] = [:]
 
-    internal let options: DictionaryEncodingOptions
-    internal let userInfo: [CodingUserInfoKey: Any]
+    internal let context: DictionaryComponentEncoder
     internal let codingPath: [CodingKey]
 
     // MARK: - Initializers
 
     internal init(
-        options: DictionaryEncodingOptions,
-        userInfo: [CodingUserInfoKey: Any],
+        context: DictionaryComponentEncoder,
         codingPath: [CodingKey]
     ) {
-        self.options = options
-        self.userInfo = userInfo
+        self.context = context
         self.codingPath = codingPath
     }
 
@@ -26,7 +23,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
     @inline(__always)
     private func encodeKey<Key: CodingKey>(_ key: Key) -> String {
-        switch options.keyEncodingStrategy {
+        switch context.options.keyEncodingStrategy {
         case .useDefaultKeys:
             return key.stringValue
 
@@ -51,8 +48,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
         }
 
         let container = DictionaryAnyKeyedEncodingContainer(
-            options: options,
-            userInfo: userInfo,
+            context: context,
             codingPath: codingPath.appending(key)
         )
 
@@ -67,8 +63,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
         }
 
         let container = DictionaryUnkeyedEncodingContainer(
-            options: options,
-            userInfo: userInfo,
+            context: context,
             codingPath: codingPath.appending(key)
         )
 
@@ -83,8 +78,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
         }
 
         let encoder = DictionarySingleValueEncodingContainer(
-            options: options,
-            userInfo: userInfo,
+            context: context,
             codingPath: codingPath.appending(key)
         )
 

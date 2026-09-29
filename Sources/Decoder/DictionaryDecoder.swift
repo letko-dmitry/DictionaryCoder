@@ -62,8 +62,7 @@ public final class DictionaryDecoder: Sendable {
 
         let decoder = DictionarySingleValueDecodingContainer(
             component: dictionary,
-            options: options,
-            userInfo: userInfo,
+            context: DictionaryComponentDecoder(options: options, userInfo: userInfo),
             codingPath: []
         )
 
@@ -84,8 +83,7 @@ public final class DictionaryDecoder: Sendable {
 
         let decoder = DictionarySingleValueDecodingContainer(
             component: dictionary,
-            options: options,
-            userInfo: userInfo,
+            context: DictionaryComponentDecoder(options: options, userInfo: userInfo),
             codingPath: []
         )
 

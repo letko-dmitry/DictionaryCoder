@@ -1,14 +1,18 @@
 import Foundation
 
-internal protocol DictionaryComponentEncoder {
+internal final class DictionaryComponentEncoder {
 
     // MARK: - Instance Properties
 
-    var options: DictionaryEncodingOptions { get }
-    var userInfo: [CodingUserInfoKey: Any] { get }
-}
+    internal let options: DictionaryEncodingOptions
+    internal let userInfo: [CodingUserInfoKey: Any]
 
-extension DictionaryComponentEncoder {
+    // MARK: - Initializers
+
+    internal init(options: DictionaryEncodingOptions, userInfo: [CodingUserInfoKey: Any]) {
+        self.options = options
+        self.userInfo = userInfo
+    }
 
     // MARK: - Instance Methods
 
@@ -25,8 +29,7 @@ extension DictionaryComponentEncoder {
         at codingPath: @autoclosure () -> [CodingKey]
     ) throws -> DictionaryComponent {
         let encoder = DictionarySingleValueEncodingContainer(
-            options: options,
-            userInfo: userInfo,
+            context: self,
             codingPath: codingPath()
         )
 
@@ -41,8 +44,7 @@ extension DictionaryComponentEncoder {
         closure: (_ value: T, _ encoder: Encoder) throws -> Void
     ) throws -> DictionaryComponent {
         let encoder = DictionarySingleValueEncodingContainer(
-            options: options,
-            userInfo: userInfo,
+            context: self,
             codingPath: codingPath()
         )
 

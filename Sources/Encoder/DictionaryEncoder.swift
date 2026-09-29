@@ -65,8 +65,7 @@ public final class DictionaryEncoder: Sendable {
         let options = optionsMutex.withLock { $0 }
 
         let encoder = DictionarySingleValueEncodingContainer(
-            options: options,
-            userInfo: userInfo,
+            context: DictionaryComponentEncoder(options: options, userInfo: userInfo),
             codingPath: []
         )
 
@@ -92,8 +91,7 @@ public final class DictionaryEncoder: Sendable {
         let options = optionsMutex.withLock { $0 }
 
         let encoder = DictionarySingleValueEncodingContainer(
-            options: options,
-            userInfo: userInfo,
+            context: DictionaryComponentEncoder(options: options, userInfo: userInfo),
             codingPath: []
         )
 

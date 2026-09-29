@@ -1,14 +1,11 @@
 import Foundation
 
-internal class DictionaryKeyedDecodingContainer<Key: CodingKey>:
-    KeyedDecodingContainerProtocol,
-    DictionaryComponentDecoder {
+internal class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
 
     // MARK: - Instance Properties
 
     internal let components: [String: Any]
-    internal let options: DictionaryDecodingOptions
-    internal let userInfo: [CodingUserInfoKey: Any]
+    internal let context: DictionaryComponentDecoder
     internal let codingPath: [CodingKey]
 
     internal var allKeys: [Key] {
@@ -19,11 +16,10 @@ internal class DictionaryKeyedDecodingContainer<Key: CodingKey>:
 
     internal init(
         components: [String: Any],
-        options: DictionaryDecodingOptions,
-        userInfo: [CodingUserInfoKey: Any],
+        context: DictionaryComponentDecoder,
         codingPath: [CodingKey]
     ) {
-        switch options.keyDecodingStrategy {
+        switch context.options.keyDecodingStrategy {
         case .useDefaultKeys:
             self.components = components
 
@@ -35,8 +31,7 @@ internal class DictionaryKeyedDecodingContainer<Key: CodingKey>:
             self.components = Dictionary(componentKeysAndValues) { $1 }
         }
 
-        self.options = options
-        self.userInfo = userInfo
+        self.context = context
         self.codingPath = codingPath
     }
 
@@ -62,8 +57,7 @@ internal class DictionaryKeyedDecodingContainer<Key: CodingKey>:
     private func superDecoder(forAnyKey key: CodingKey) throws -> Decoder {
         DictionarySingleValueDecodingContainer(
             component: components[key.stringValue],
-            options: options,
-            userInfo: userInfo,
+            context: context,
             codingPath: codingPath.appending(key)
         )
     }
@@ -75,67 +69,67 @@ internal class DictionaryKeyedDecodingContainer<Key: CodingKey>:
     }
 
     internal func decodeNil(forKey key: Key) throws -> Bool {
-        decodeNilComponent(from: try component(forKey: key))
+        context.decodeNilComponent(from: try component(forKey: key))
     }
 
     internal func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool {
-        try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func decode(_ type: Int.Type, forKey key: Key) throws -> Int {
-        try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func decode(_ type: Int8.Type, forKey key: Key) throws -> Int8 {
-        try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func decode(_ type: Int16.Type, forKey key: Key) throws -> Int16 {
-        try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func decode(_ type: Int32.Type, forKey key: Key) throws -> Int32 {
-        try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func decode(_ type: Int64.Type, forKey key: Key) throws -> Int64 {
-        try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func decode(_ type: UInt.Type, forKey key: Key) throws -> UInt {
-        try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func decode(_ type: UInt8.Type, forKey key: Key) throws -> UInt8 {
-        try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func decode(_ type: UInt16.Type, forKey key: Key) throws -> UInt16 {
-        try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func decode(_ type: UInt32.Type, forKey key: Key) throws -> UInt32 {
-        try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 {
-        try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func decode(_ type: Double.Type, forKey key: Key) throws -> Double {
-        try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func decode(_ type: Float.Type, forKey key: Key) throws -> Float {
-        try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func decode(_ type: String.Type, forKey key: Key) throws -> String {
-        try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func decode<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T {
-        try decodeComponentValue(of: type, from: try component(forKey: key), at: codingPath.appending(key))
+        try context.decodeComponentValue(of: type, from: try component(forKey: key), at: codingPath.appending(key))
     }
 
     internal func nestedContainer<NestedKey: CodingKey>(

@@ -1,19 +1,13 @@
 import Foundation
 
-internal final class DictionaryKeyedEncodingContainer<Key: CodingKey>:
-    KeyedEncodingContainerProtocol,
-    DictionaryComponentEncoder {
+internal final class DictionaryKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingContainerProtocol {
 
     // MARK: - Instance Properties
 
     internal let container: DictionaryAnyKeyedEncodingContainer
 
-    internal var options: DictionaryEncodingOptions {
-        container.options
-    }
-
-    internal var userInfo: [CodingUserInfoKey: Any] {
-        container.userInfo
+    internal var context: DictionaryComponentEncoder {
+        container.context
     }
 
     internal var codingPath: [CodingKey] {
@@ -29,67 +23,67 @@ internal final class DictionaryKeyedEncodingContainer<Key: CodingKey>:
     // MARK: - Instance Methods
 
     internal func encodeNil(forKey key: Key) throws {
-        container.collectComponent(encodeNilComponent(at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(context.encodeNilComponent(at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode(_ value: Bool, forKey key: Key) throws {
-        container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode(_ value: Int, forKey key: Key) throws {
-        container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode(_ value: Int8, forKey key: Key) throws {
-        container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode(_ value: Int16, forKey key: Key) throws {
-        container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode(_ value: Int32, forKey key: Key) throws {
-        container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode(_ value: Int64, forKey key: Key) throws {
-        container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode(_ value: UInt, forKey key: Key) throws {
-        container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode(_ value: UInt8, forKey key: Key) throws {
-        container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode(_ value: UInt16, forKey key: Key) throws {
-        container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode(_ value: UInt32, forKey key: Key) throws {
-        container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode(_ value: UInt64, forKey key: Key) throws {
-        container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode(_ value: Double, forKey key: Key) throws {
-        container.collectComponent(try encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(try context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode(_ value: Float, forKey key: Key) throws {
-        container.collectComponent(try encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(try context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode(_ value: String, forKey key: Key) throws {
-        container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func encode<T: Encodable>(_ value: T, forKey key: Key) throws {
-        container.collectComponent(try encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
+        container.collectComponent(try context.encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
     internal func nestedContainer<NestedKey: CodingKey>(

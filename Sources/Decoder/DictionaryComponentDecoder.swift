@@ -1,12 +1,18 @@
 import Foundation
 
-internal protocol DictionaryComponentDecoder {
+internal final class DictionaryComponentDecoder {
 
-    var options: DictionaryDecodingOptions { get }
-    var userInfo: [CodingUserInfoKey: Any] { get }
-}
+    // MARK: - Instance Properties
 
-extension DictionaryComponentDecoder {
+    internal let options: DictionaryDecodingOptions
+    internal let userInfo: [CodingUserInfoKey: Any]
+
+    // MARK: - Initializers
+
+    internal init(options: DictionaryDecodingOptions, userInfo: [CodingUserInfoKey: Any]) {
+        self.options = options
+        self.userInfo = userInfo
+    }
 
     // MARK: - Instance Methods
 
@@ -30,8 +36,7 @@ extension DictionaryComponentDecoder {
     ) throws -> T {
         let decoder = DictionarySingleValueDecodingContainer(
             component: component,
-            options: options,
-            userInfo: userInfo,
+            context: self,
             codingPath: codingPath()
         )
 
@@ -46,8 +51,7 @@ extension DictionaryComponentDecoder {
     ) throws -> T {
         let decoder = DictionarySingleValueDecodingContainer(
             component: component,
-            options: options,
-            userInfo: userInfo,
+            context: self,
             codingPath: codingPath()
         )
 
