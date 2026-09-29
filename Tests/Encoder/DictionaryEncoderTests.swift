@@ -348,6 +348,30 @@ final class DictionaryEncoderTests: XCTestCase, DictionaryEncoderTesting {
         assertEncoderSucceeds(encoding: EncodableStruct())
     }
 
+    func testThatEncoderSucceedsWhenReplacingValuesAndNestedContainersForKeys() {
+        struct EncodableStruct: Encodable {
+            enum CodingKeys: String, CodingKey {
+                case foo
+                case bar
+            }
+
+            func encode(to encoder: Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+                var fooContainer = container.nestedContainer(keyedBy: CodingKeys.self, forKey: .foo)
+
+                try fooContainer.encode(123, forKey: .bar)
+                try container.encode(456, forKey: .foo)
+                try container.encode(789, forKey: .bar)
+
+                var barContainer = container.nestedUnkeyedContainer(forKey: .bar)
+
+                try barContainer.encode(123)
+            }
+        }
+
+        assertEncoderSucceeds(encoding: EncodableStruct(), expecting: ["foo": 456, "bar": [123]])
+    }
+
     func testThatEncoderSucceedsWhenEncodingStructUsingSuperEncoder() {
         struct EncodableStruct: Encodable {
             enum CodingKeys: String, CodingKey {

@@ -4,7 +4,9 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
     // MARK: - Instance Properties
 
-    private var components: [String: DictionaryComponent] = [:]
+    // Values are stored resolved, only nested containers are resolved along with the whole container.
+    private var values: [String: Any] = [:]
+    private var containers: [String: DictionaryComponentContainer] = [:]
 
     internal let context: DictionaryComponentEncoder
     internal let codingPath: [CodingKey]
@@ -36,14 +38,27 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
     @inline(__always)
     internal func collectComponent<Key: CodingKey>(_ component: consuming DictionaryComponent, forKey key: Key) {
-        components[encodeKey(key)] = component
+        let key = encodeKey(key)
+
+        switch component {
+        case let .value(value):
+            if !containers.isEmpty {
+                containers[key] = nil
+            }
+
+            values[key] = value
+
+        case let .container(container):
+            values[key] = nil
+            containers[key] = container
+        }
     }
 
     internal func nestedContainer<Key: CodingKey, NestedKey: CodingKey>(
         keyedBy keyType: NestedKey.Type,
         forKey key: Key
     ) -> DictionaryAnyKeyedEncodingContainer {
-        if case let .container(container as Self) = components[encodeKey(key)] {
+        if let container = containers[encodeKey(key)] as? Self {
             return container
         }
 
@@ -58,7 +73,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
     }
 
     internal func nestedUnkeyedContainer<Key: CodingKey>(forKey key: Key) -> UnkeyedEncodingContainer {
-        if case let .container(container as DictionaryUnkeyedEncodingContainer) = components[encodeKey(key)] {
+        if let container = containers[encodeKey(key)] as? DictionaryUnkeyedEncodingContainer {
             return container
         }
 
@@ -73,7 +88,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
     }
 
     internal func superEncoder<Key: CodingKey>(forKey key: Key) -> Encoder {
-        if case let .container(container as DictionarySingleValueEncodingContainer) = components[encodeKey(key)] {
+        if let container = containers[encodeKey(key)] as? DictionarySingleValueEncodingContainer {
             return container
         }
 
@@ -90,6 +105,12 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
     // MARK: - DictionaryComponentContainer
 
     internal func resolveValue() -> Any? {
-        components.compactMapValues { $0.resolveValue() }
+        var values = values
+
+        for (key, container) in containers {
+            values[key] = container.resolveValue()
+        }
+
+        return values
     }
 }

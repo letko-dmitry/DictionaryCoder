@@ -6,7 +6,9 @@ internal final class DictionaryUnkeyedEncodingContainer:
 
     // MARK: - Instance Properties
 
-    private var components: [DictionaryComponent] = []
+    // Values are stored resolved, only nested containers are resolved along with the whole container.
+    private var values: [Any] = []
+    private var containers: [(index: Int, container: DictionaryComponentContainer)] = []
 
     internal let context: DictionaryComponentEncoder
     internal let codingPath: [CodingKey]
@@ -17,7 +19,7 @@ internal final class DictionaryUnkeyedEncodingContainer:
     }
 
     internal var count: Int {
-        components.count
+        values.count
     }
 
     // MARK: - Initializers
@@ -34,7 +36,16 @@ internal final class DictionaryUnkeyedEncodingContainer:
 
     @inline(__always)
     private func collectComponent(_ component: consuming DictionaryComponent) {
-        components.append(component)
+        switch component {
+        case let .value(value):
+            values.append(value ?? value as Any)
+
+        case let .container(container):
+            containers.append((values.count, container))
+
+            // A placeholder that is replaced with the resolved value of the container.
+            values.append(container)
+        }
     }
 
     // MARK: - UnkeyedEncodingContainer
@@ -143,10 +154,14 @@ internal final class DictionaryUnkeyedEncodingContainer:
     // MARK: - DictionaryComponentContainer
 
     internal func resolveValue() -> Any? {
-        components.map { component in
-            let value = component.resolveValue()
+        var values = values
 
-            return value ?? value as Any
+        for (index, container) in containers {
+            let value = container.resolveValue()
+
+            values[index] = value ?? value as Any
         }
+
+        return values
     }
 }
