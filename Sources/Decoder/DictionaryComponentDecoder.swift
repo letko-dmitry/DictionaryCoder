@@ -32,17 +32,42 @@ internal final class DictionaryComponentDecoder {
             return value
         }
 
-        // Bridging an `NSNumber` through `as? T` looks the bridging up on every call,
-        // while bridging one known to be an `NSNumber` calls the same conversion directly.
-        if componentType is NSNumber.Type, let number = component as? NSNumber {
-            if let value = number as? T {
-                return value
-            }
-        } else if let value = component as? T {
+        if let value = bridgeFoundationComponent(component, of: componentType, to: type) {
+            return value
+        }
+
+        if let value = component as? T {
             return value
         }
 
         return try decodeConvertedNumber(from: component, at: codingPathNode())
+    }
+
+    // Bridging a Foundation object through `as? T` looks the bridging up on every call,
+    // while bridging one known to be of the class that `T` bridges from calls the same conversion directly.
+    @inline(__always)
+    private func bridgeFoundationComponent<T>(_ component: Any, of componentType: Any.Type, to type: T.Type) -> T? {
+        if T.self == String.self {
+            guard componentType is NSString.Type, let string = component as? NSString else {
+                return nil
+            }
+
+            return string as? T
+        }
+
+        if T.self == Data.self {
+            guard componentType is NSData.Type, let data = component as? NSData else {
+                return nil
+            }
+
+            return data as? T
+        }
+
+        guard componentType is NSNumber.Type, let number = component as? NSNumber else {
+            return nil
+        }
+
+        return number as? T
     }
 
     internal func decodeNonPrimitiveValue<T: Decodable>(
