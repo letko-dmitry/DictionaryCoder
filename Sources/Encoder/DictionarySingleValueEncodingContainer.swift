@@ -1,3 +1,7 @@
+/// The encoder of a value, which is its single value container as well.
+///
+/// It keeps the position of the value rather than a node of its coding path,
+/// as a node is needed only for the containers of the value.
 internal final class DictionarySingleValueEncodingContainer:
     Encoder,
     SingleValueEncodingContainer,
@@ -8,10 +12,10 @@ internal final class DictionarySingleValueEncodingContainer:
     private var component: DictionaryComponent?
 
     internal let context: DictionaryComponentEncoder
-    internal let codingPathNode: CodingPathNode
+    internal let position: CodingPosition
 
     internal var codingPath: [CodingKey] {
-        codingPathNode.path
+        position.path
     }
 
     internal var userInfo: [CodingUserInfoKey: Any] {
@@ -22,10 +26,10 @@ internal final class DictionarySingleValueEncodingContainer:
 
     internal init(
         context: DictionaryComponentEncoder,
-        codingPathNode: CodingPathNode
+        position: CodingPosition
     ) {
         self.context = context
-        self.codingPathNode = codingPathNode
+        self.position = position
     }
 
     // MARK: - Instance Methods
@@ -47,77 +51,77 @@ internal final class DictionarySingleValueEncodingContainer:
     // MARK: - SingleValueEncodingContainer
 
     internal func encodeNil() throws {
-        try collectComponent(context.encodeNilComponent(at: codingPathNode), for: nil)
+        try collectComponent(context.encodeNilComponent(at: position), for: nil)
     }
 
     internal func encode(_ value: Bool) throws {
-        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
     }
 
     internal func encode(_ value: Int) throws {
-        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
     }
 
     internal func encode(_ value: Int8) throws {
-        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
     }
 
     internal func encode(_ value: Int16) throws {
-        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
     }
 
     internal func encode(_ value: Int32) throws {
-        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
     }
 
     internal func encode(_ value: Int64) throws {
-        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
     }
 
     @available(watchOS 11.0, *)
     internal func encode(_ value: Int128) throws {
-        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
     }
 
     internal func encode(_ value: UInt) throws {
-        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
     }
 
     internal func encode(_ value: UInt8) throws {
-        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
     }
 
     internal func encode(_ value: UInt16) throws {
-        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
     }
 
     internal func encode(_ value: UInt32) throws {
-        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
     }
 
     internal func encode(_ value: UInt64) throws {
-        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
     }
 
     @available(watchOS 11.0, *)
     internal func encode(_ value: UInt128) throws {
-        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
     }
 
     internal func encode(_ value: Double) throws {
-        try collectComponent(try context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(try context.encodeComponentValue(value, at: position), for: value)
     }
 
     internal func encode(_ value: Float) throws {
-        try collectComponent(try context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(try context.encodeComponentValue(value, at: position), for: value)
     }
 
     internal func encode(_ value: String) throws {
-        try collectComponent(context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
     }
 
     internal func encode<T: Encodable>(_ value: T) throws {
-        try collectComponent(try context.encodeComponentValue(value, at: codingPathNode), for: value)
+        try collectComponent(try context.encodeComponentValue(value, at: position), for: value)
     }
 
     // MARK: - Encoder
@@ -131,7 +135,7 @@ internal final class DictionarySingleValueEncodingContainer:
 
         let container = DictionaryAnyKeyedEncodingContainer(
             context: context,
-            codingPathNode: codingPathNode
+            codingPathNode: CodingPathNode(position: position)
         )
 
         component = .container(container)
@@ -148,7 +152,7 @@ internal final class DictionarySingleValueEncodingContainer:
 
         let container = DictionaryUnkeyedEncodingContainer(
             context: context,
-            codingPathNode: codingPathNode
+            codingPathNode: CodingPathNode(position: position)
         )
 
         component = .container(container)

@@ -1,5 +1,7 @@
 import Foundation
 
+/// Decodes values from components with the options and user info of a `DictionaryDecoder`,
+/// for the decoders of all values of a dictionary.
 internal final class DictionaryComponentDecoder {
 
     // MARK: - Instance Properties
@@ -20,10 +22,10 @@ internal final class DictionaryComponentDecoder {
     private func decodePrimitiveValue<T: Decodable>(
         of type: T.Type = T.self,
         from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> T {
         guard let component else {
-            return try decodeConvertedNumber(from: component, at: codingPathNode())
+            return try decodeConvertedNumber(from: component, at: position())
         }
 
         let componentType = Swift.type(of: component)
@@ -40,7 +42,7 @@ internal final class DictionaryComponentDecoder {
             return value
         }
 
-        return try decodeConvertedNumber(from: component, at: codingPathNode())
+        return try decodeConvertedNumber(from: component, at: position())
     }
 
     // Bridging a Foundation object through `as? T` looks the bridging up on every call,
@@ -73,12 +75,12 @@ internal final class DictionaryComponentDecoder {
     internal func decodeNonPrimitiveValue<T: Decodable>(
         of type: T.Type = T.self,
         from component: consuming Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> T {
         let decoder = DictionarySingleValueDecodingContainer(
             component: component,
             context: self,
-            codingPathNode: codingPathNode()
+            position: position()
         )
 
         return try T(from: decoder)
@@ -87,21 +89,22 @@ internal final class DictionaryComponentDecoder {
     private func decodeCustomizedValue<T: Decodable>(
         of type: T.Type = T.self,
         from component: consuming Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode,
+        at position: @autoclosure () -> CodingPosition,
         closure: (_ decoder: Decoder) throws -> T
     ) throws -> T {
         let decoder = DictionarySingleValueDecodingContainer(
             component: component,
             context: self,
-            codingPathNode: codingPathNode()
+            position: position()
         )
 
         return try closure(decoder)
     }
 
-    private func decodeFloatingPointValue<T: FloatingPoint & Decodable>(
+    internal func decodeFloatingPoint<T: FloatingPoint & Decodable>(
+        _ type: T.Type,
         from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> T {
         // The strategy is checked first, so that numbers are not cast to `String` with the default strategy.
         if case .convertFromString = options.nonConformingFloatDecodingStrategy, let string = component as? String {
@@ -120,11 +123,11 @@ internal final class DictionaryComponentDecoder {
             }
         }
 
-        let number: T = try decodePrimitiveValue(from: component, at: codingPathNode())
+        let number: T = try decodePrimitiveValue(from: component, at: position())
 
         guard number.isFinite else {
             let errorContext = DecodingError.Context(
-                codingPath: codingPathNode().path,
+                codingPath: position().path,
                 debugDescription: "Parsed dictionary number \(number) does not fit in \(T.self)."
             )
 
@@ -136,24 +139,24 @@ internal final class DictionaryComponentDecoder {
 
     private func decodeDate(
         from component: consuming Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> Any {
         switch options.dateDecodingStrategy {
         case .deferredToDate:
-            return try decodeNonPrimitiveValue(of: Date.self, from: component, at: codingPathNode())
+            return try decodeNonPrimitiveValue(of: Date.self, from: component, at: position())
 
         case .secondsSince1970:
-            return Date(timeIntervalSince1970: try decodePrimitiveValue(from: component, at: codingPathNode()))
+            return Date(timeIntervalSince1970: try decodePrimitiveValue(from: component, at: position()))
 
         case .millisecondsSince1970:
-            return Date(timeIntervalSince1970: try decodePrimitiveValue(from: component, at: codingPathNode()) / 1000.0)
+            return Date(timeIntervalSince1970: try decodePrimitiveValue(from: component, at: position()) / 1000.0)
 
         case .iso8601:
-            let formattedDate = try decodePrimitiveValue(of: String.self, from: component, at: codingPathNode())
+            let formattedDate = try decodePrimitiveValue(of: String.self, from: component, at: position())
 
             guard let date = try? Date.ISO8601FormatStyle.internetDateTime.parse(formattedDate) else {
                 let errorContext = DecodingError.Context(
-                    codingPath: codingPathNode().path,
+                    codingPath: position().path,
                     debugDescription: "Expected date string to be ISO8601-formatted."
                 )
 
@@ -163,11 +166,11 @@ internal final class DictionaryComponentDecoder {
             return date
 
         case .formatted(let dateFormatter):
-            let formattedDate = try decodePrimitiveValue(of: String.self, from: component, at: codingPathNode())
+            let formattedDate = try decodePrimitiveValue(of: String.self, from: component, at: position())
 
             guard let date = dateFormatter.date(from: formattedDate) else {
                 let errorContext = DecodingError.Context(
-                    codingPath: codingPathNode().path,
+                    codingPath: position().path,
                     debugDescription: "Date string does not match format expected by formatter."
                 )
 
@@ -177,24 +180,24 @@ internal final class DictionaryComponentDecoder {
             return date
 
         case .custom(let closure):
-            return try decodeCustomizedValue(from: component, at: codingPathNode(), closure: closure)
+            return try decodeCustomizedValue(from: component, at: position(), closure: closure)
         }
     }
 
     private func decodeData(
         from component: consuming Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> Data {
         switch options.dataDecodingStrategy {
         case .deferredToData:
-            return try decodeNonPrimitiveValue(from: component, at: codingPathNode())
+            return try decodeNonPrimitiveValue(from: component, at: position())
 
         case .base64:
-            let base64EncodedString = try decodePrimitiveValue(of: String.self, from: component, at: codingPathNode())
+            let base64EncodedString = try decodePrimitiveValue(of: String.self, from: component, at: position())
 
             guard let data = Data(base64Encoded: base64EncodedString) else {
                 let errorContext = DecodingError.Context(
-                    codingPath: codingPathNode().path,
+                    codingPath: position().path,
                     debugDescription: "Encountered Data is not valid Base64."
                 )
 
@@ -204,21 +207,21 @@ internal final class DictionaryComponentDecoder {
             return data
 
         case .blob:
-            return try decodePrimitiveValue(from: component, at: codingPathNode())
+            return try decodePrimitiveValue(from: component, at: position())
 
         case .custom(let closure):
-            return try decodeCustomizedValue(from: component, at: codingPathNode(), closure: closure)
+            return try decodeCustomizedValue(from: component, at: position(), closure: closure)
         }
     }
 
-    private func decodeURL(from component: Any?, at codingPathNode: @autoclosure () -> CodingPathNode) throws -> Any {
+    private func decodeURL(from component: Any?, at position: @autoclosure () -> CodingPosition) throws -> Any {
         if let url = component as? URL {
             return url
         }
 
-        guard let url = URL(string: try decodePrimitiveValue(from: component, at: codingPathNode())) else {
+        guard let url = URL(string: try decodePrimitiveValue(from: component, at: position())) else {
             let errorContext = DecodingError.Context(
-                codingPath: codingPathNode().path,
+                codingPath: position().path,
                 debugDescription: "String is not valid URL."
             )
 
@@ -228,15 +231,15 @@ internal final class DictionaryComponentDecoder {
         return url
     }
 
-    // Kept out of `decodeComponentValue`, as the compiler reserves stack space for the generic copies here
+    // Kept out of `decode(_:from:at:)`, as the compiler reserves stack space for the generic copies here
     // on entry to the function, which would slow down decoding of every other value.
     @inline(never)
     private func decodePrimitiveComponentValue<T: Decodable>(
         of type: T.Type,
         from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> T {
-        try decodePrimitiveValue(of: type, from: component, at: codingPathNode())
+        try decodePrimitiveValue(of: type, from: component, at: position())
     }
 
     // MARK: -
@@ -251,190 +254,72 @@ internal final class DictionaryComponentDecoder {
         return type(of: component) is NSNull.Type
     }
 
+    /// Decodes a string, a boolean or an integer that fits in 64 bits.
     @inline(__always)
-    internal func decodeComponentValue(
+    internal func decodePrimitive<T: Decodable>(
+        _ type: T.Type,
         from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> Bool {
-        try decodePrimitiveValue(from: component, at: codingPathNode())
+        at position: @autoclosure () -> CodingPosition
+    ) throws -> T {
+        try decodePrimitiveValue(of: type, from: component, at: position())
     }
 
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> Int {
-        try decodePrimitiveValue(from: component, at: codingPathNode())
-    }
-
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> Int8 {
-        try decodePrimitiveValue(from: component, at: codingPathNode())
-    }
-
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> Int16 {
-        try decodePrimitiveValue(from: component, at: codingPathNode())
-    }
-
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> Int32 {
-        try decodePrimitiveValue(from: component, at: codingPathNode())
-    }
-
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> Int64 {
-        try decodePrimitiveValue(from: component, at: codingPathNode())
-    }
-
-    @available(watchOS 11.0, *)
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> Int128 {
-        try decodeWideInteger(from: component, at: codingPathNode())
-    }
-
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> UInt {
-        try decodePrimitiveValue(from: component, at: codingPathNode())
-    }
-
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> UInt8 {
-        try decodePrimitiveValue(from: component, at: codingPathNode())
-    }
-
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> UInt16 {
-        try decodePrimitiveValue(from: component, at: codingPathNode())
-    }
-
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> UInt32 {
-        try decodePrimitiveValue(from: component, at: codingPathNode())
-    }
-
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> UInt64 {
-        try decodePrimitiveValue(from: component, at: codingPathNode())
-    }
-
-    @available(watchOS 11.0, *)
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> UInt128 {
-        try decodeWideInteger(from: component, at: codingPathNode())
-    }
-
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> Double {
-        try decodeFloatingPointValue(from: component, at: codingPathNode())
-    }
-
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> Float {
-        try decodeFloatingPointValue(from: component, at: codingPathNode())
-    }
-
-    @inline(__always)
-    internal func decodeComponentValue(
-        from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
-    ) throws -> String {
-        try decodePrimitiveValue(from: component, at: codingPathNode())
-    }
-
-    internal func decodeComponentValue<T: Decodable>(
-        of type: T.Type,
+    /// Decodes a value of any type: values that dictionaries hold as they are, such as numbers and arrays of them,
+    /// are converted in place, and other values are decoded by themselves with decoders of their own.
+    internal func decode<T: Decodable>(
+        _ type: T.Type,
         from component: consuming Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> T {
         // Primitive values are decoded in place,
         // so that an array of numbers, for example, does not create a nested decoder for each element.
         if PrimitiveTypes.contains(type) {
-            return try decodePrimitiveComponentValue(of: type, from: component, at: codingPathNode())
+            return try decodePrimitiveComponentValue(of: type, from: component, at: position())
         }
 
         switch ObjectIdentifier(type) {
         case ObjectIdentifier(Double.self):
-            return try decodeFloatingPointValue(from: component, at: codingPathNode()) as Double as! T
+            return try decodeFloatingPoint(Double.self, from: component, at: position()) as! T
 
         case ObjectIdentifier(Float.self):
-            return try decodeFloatingPointValue(from: component, at: codingPathNode()) as Float as! T
+            return try decodeFloatingPoint(Float.self, from: component, at: position()) as! T
 
         // Dates and URLs are returned as `Any`, as a resilient Foundation value in this function
         // would make the compiler reserve stack space for it on every call, whatever the type.
         case ObjectIdentifier(Date.self):
-            return try decodeDate(from: component, at: codingPathNode()) as! T
+            return try decodeDate(from: component, at: position()) as! T
 
         case ObjectIdentifier(Data.self):
-            return try decodeData(from: component, at: codingPathNode()) as! T
+            return try decodeData(from: component, at: position()) as! T
 
         case ObjectIdentifier(URL.self):
-            return try decodeURL(from: component, at: codingPathNode()) as! T
+            return try decodeURL(from: component, at: position()) as! T
 
         case ObjectIdentifier(Decimal.self):
-            return try decodeDecimal(from: component, at: codingPathNode()) as! T
+            return try decodeDecimal(from: component, at: position()) as! T
 
         default:
             if PrimitiveArrayType.contains(type),
-               let array = try decodePrimitiveArray(of: type, from: component, at: codingPathNode()) {
+               let array = try decodePrimitiveArray(of: type, from: component, at: position()) {
                 return array as! T
             }
 
             if PrimitiveDictionaryType.contains(type),
-               let dictionary = try decodePrimitiveDictionary(of: type, from: component, at: codingPathNode()) {
+               let dictionary = try decodePrimitiveDictionary(of: type, from: component, at: position()) {
                 return dictionary as! T
             }
 
             if #available(watchOS 11.0, *) {
                 if type == Int128.self {
-                    return try decodeWideInteger(from: component, at: codingPathNode()) as Int128 as! T
+                    return try decodeWideInteger(Int128.self, from: component, at: position()) as! T
                 }
 
                 if type == UInt128.self {
-                    return try decodeWideInteger(from: component, at: codingPathNode()) as UInt128 as! T
+                    return try decodeWideInteger(UInt128.self, from: component, at: position()) as! T
                 }
             }
 
-            return try decodeNonPrimitiveValue(from: component, at: codingPathNode())
+            return try decodeNonPrimitiveValue(from: component, at: position())
         }
     }
 }

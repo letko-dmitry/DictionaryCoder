@@ -71,7 +71,7 @@ public final class DictionaryEncoder: Sendable {
 
         let encoder = DictionarySingleValueEncodingContainer(
             context: DictionaryComponentEncoder(options: options, userInfo: userInfo),
-            codingPathNode: .root
+            position: .root
         )
 
         try encoding(encoder)

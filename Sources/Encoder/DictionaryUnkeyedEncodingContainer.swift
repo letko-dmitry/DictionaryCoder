@@ -16,8 +16,8 @@ internal final class DictionaryUnkeyedEncodingContainer:
     }
 
     @inline(__always)
-    internal var currentCodingPathNode: CodingPathNode {
-        codingPathNode.appending(index: count)
+    internal var currentPosition: CodingPosition {
+        CodingPosition(container: codingPathNode, key: .index(count))
     }
 
     internal var count: Int {
@@ -59,77 +59,77 @@ internal final class DictionaryUnkeyedEncodingContainer:
     // MARK: - UnkeyedEncodingContainer
 
     internal func encodeNil() throws {
-        collectComponent(context.encodeNilComponent(at: currentCodingPathNode))
+        collectComponent(context.encodeNilComponent(at: currentPosition))
     }
 
     internal func encode(_ value: Bool) throws {
-        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func encode(_ value: Int) throws {
-        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func encode(_ value: Int8) throws {
-        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func encode(_ value: Int16) throws {
-        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func encode(_ value: Int32) throws {
-        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func encode(_ value: Int64) throws {
-        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(context.encodeComponentValue(value, at: currentPosition))
     }
 
     @available(watchOS 11.0, *)
     internal func encode(_ value: Int128) throws {
-        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func encode(_ value: UInt) throws {
-        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func encode(_ value: UInt8) throws {
-        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func encode(_ value: UInt16) throws {
-        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func encode(_ value: UInt32) throws {
-        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func encode(_ value: UInt64) throws {
-        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(context.encodeComponentValue(value, at: currentPosition))
     }
 
     @available(watchOS 11.0, *)
     internal func encode(_ value: UInt128) throws {
-        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func encode(_ value: Double) throws {
-        collectComponent(try context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(try context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func encode(_ value: Float) throws {
-        collectComponent(try context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(try context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func encode(_ value: String) throws {
-        collectComponent(context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func encode<T: Encodable>(_ value: T) throws {
-        collectComponent(try context.encodeComponentValue(value, at: currentCodingPathNode))
+        collectComponent(try context.encodeComponentValue(value, at: currentPosition))
     }
 
     internal func nestedContainer<NestedKey: CodingKey>(
@@ -137,7 +137,7 @@ internal final class DictionaryUnkeyedEncodingContainer:
     ) -> KeyedEncodingContainer<NestedKey> {
         let container = DictionaryAnyKeyedEncodingContainer(
             context: context,
-            codingPathNode: currentCodingPathNode
+            codingPathNode: CodingPathNode(position: currentPosition)
         )
 
         collectComponent(.container(container))
@@ -150,7 +150,7 @@ internal final class DictionaryUnkeyedEncodingContainer:
     internal func nestedUnkeyedContainer() -> UnkeyedEncodingContainer {
         let container = DictionaryUnkeyedEncodingContainer(
             context: context,
-            codingPathNode: currentCodingPathNode
+            codingPathNode: CodingPathNode(position: currentPosition)
         )
 
         collectComponent(.container(container))
@@ -161,7 +161,7 @@ internal final class DictionaryUnkeyedEncodingContainer:
     internal func superEncoder() -> Encoder {
         let encoder = DictionarySingleValueEncodingContainer(
             context: context,
-            codingPathNode: currentCodingPathNode
+            position: currentPosition
         )
 
         collectComponent(.container(encoder))

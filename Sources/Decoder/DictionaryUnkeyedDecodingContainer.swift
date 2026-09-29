@@ -72,19 +72,23 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
 
     // MARK: - Instance Properties
 
+    /// The decoder of the array, which is the node of the coding path of its elements.
+    internal let decoder: DictionarySingleValueDecodingContainer
     internal let components: DictionaryUnkeyedComponents
-    internal let context: DictionaryComponentDecoder
-    internal let codingPathNode: CodingPathNode
 
     internal private(set) var currentIndex = 0
 
+    internal var context: DictionaryComponentDecoder {
+        decoder.context
+    }
+
     internal var codingPath: [CodingKey] {
-        codingPathNode.path
+        decoder.codingPath
     }
 
     @inline(__always)
-    internal var currentCodingPathNode: CodingPathNode {
-        codingPathNode.appending(index: currentIndex)
+    internal var currentPosition: CodingPosition {
+        CodingPosition(container: decoder, key: .index(currentIndex))
     }
 
     internal var count: Int? {
@@ -97,14 +101,9 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
 
     // MARK: - Initializers
 
-    internal init(
-        components: DictionaryUnkeyedComponents,
-        context: DictionaryComponentDecoder,
-        codingPathNode: CodingPathNode
-    ) {
+    internal init(decoder: DictionarySingleValueDecodingContainer, components: DictionaryUnkeyedComponents) {
+        self.decoder = decoder
         self.components = components
-        self.context = context
-        self.codingPathNode = codingPathNode
     }
 
     // MARK: - Instance Methods
@@ -113,7 +112,7 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
     private func peekNextComponent() throws -> Any? {
         guard currentIndex < components.count else {
             let errorContext = DecodingError.Context(
-                codingPath: currentCodingPathNode.path,
+                codingPath: currentPosition.path,
                 debugDescription: "Unkeyed container is at end."
             )
 
@@ -133,11 +132,11 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
     }
 
     @inline(__always)
-    private func superDecoder(for component: consuming Any?, at codingPathNode: consuming CodingPathNode) -> Decoder {
+    private func superDecoder(for component: consuming Any?) -> DictionarySingleValueDecodingContainer {
         DictionarySingleValueDecodingContainer(
             component: component,
             context: context,
-            codingPathNode: codingPathNode
+            position: currentPosition
         )
     }
 
@@ -154,86 +153,86 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
     }
 
     internal func decode(_ type: Bool.Type) throws -> Bool {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
     }
 
     internal func decode(_ type: Int.Type) throws -> Int {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
     }
 
     internal func decode(_ type: Int8.Type) throws -> Int8 {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
     }
 
     internal func decode(_ type: Int16.Type) throws -> Int16 {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
     }
 
     internal func decode(_ type: Int32.Type) throws -> Int32 {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
     }
 
     internal func decode(_ type: Int64.Type) throws -> Int64 {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
     }
 
     @available(watchOS 11.0, *)
     internal func decode(_ type: Int128.Type) throws -> Int128 {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodeWideInteger(type, from: $0, at: currentPosition) }
     }
 
     internal func decode(_ type: UInt.Type) throws -> UInt {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
     }
 
     internal func decode(_ type: UInt8.Type) throws -> UInt8 {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
     }
 
     internal func decode(_ type: UInt16.Type) throws -> UInt16 {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
     }
 
     internal func decode(_ type: UInt32.Type) throws -> UInt32 {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
     }
 
     internal func decode(_ type: UInt64.Type) throws -> UInt64 {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
     }
 
     @available(watchOS 11.0, *)
     internal func decode(_ type: UInt128.Type) throws -> UInt128 {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodeWideInteger(type, from: $0, at: currentPosition) }
     }
 
     internal func decode(_ type: Double.Type) throws -> Double {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodeFloatingPoint(type, from: $0, at: currentPosition) }
     }
 
     internal func decode(_ type: Float.Type) throws -> Float {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodeFloatingPoint(type, from: $0, at: currentPosition) }
     }
 
     internal func decode(_ type: String.Type) throws -> String {
-        try decodeNextComponent { try context.decodeComponentValue(from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
     }
 
     internal func decode<T: Decodable>(_ type: T.Type) throws -> T {
-        try decodeNextComponent { try context.decodeComponentValue(of: type, from: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { try context.decode(type, from: $0, at: currentPosition) }
     }
 
     internal func nestedContainer<NestedKey: CodingKey>(
         keyedBy keyType: NestedKey.Type
     ) throws -> KeyedDecodingContainer<NestedKey> {
-        try decodeNextComponent { try superDecoder(for: $0, at: currentCodingPathNode).container(keyedBy: keyType) }
+        try decodeNextComponent { try superDecoder(for: $0).container(keyedBy: keyType) }
     }
 
     internal func nestedUnkeyedContainer() throws -> UnkeyedDecodingContainer {
-        try decodeNextComponent { try superDecoder(for: $0, at: currentCodingPathNode).unkeyedContainer() }
+        try decodeNextComponent { try superDecoder(for: $0).unkeyedContainer() }
     }
 
     internal func superDecoder() throws -> Decoder {
-        try decodeNextComponent { superDecoder(for: $0, at: currentCodingPathNode) }
+        try decodeNextComponent { superDecoder(for: $0) }
     }
 }

@@ -90,35 +90,37 @@ internal enum DictionaryKeyedComponents {
     }
 }
 
+// A class rather than a structure, as `KeyedDecodingContainer` copies a structure for every call,
+// which retains each of its references.
 internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
 
     // MARK: - Instance Properties
 
+    /// The decoder of the dictionary, which is the node of the coding path of its values.
+    internal let decoder: DictionarySingleValueDecodingContainer
     internal let components: DictionaryKeyedComponents
-    internal let context: DictionaryComponentDecoder
-    internal let codingPathNode: CodingPathNode
+
+    internal var context: DictionaryComponentDecoder {
+        decoder.context
+    }
 
     internal var codingPath: [CodingKey] {
-        codingPathNode.path
+        decoder.codingPath
     }
 
     internal var allKeys: [Key] {
-        components.compactMapKeys { Key(stringValue: $0) }
+        components.compactMapKeys(Key.init(stringValue:))
     }
 
     // MARK: - Initializers
 
-    internal init(
-        components: DictionaryKeyedComponents,
-        context: DictionaryComponentDecoder,
-        codingPathNode: CodingPathNode
-    ) {
-        switch context.options.keyDecodingStrategy {
+    internal init(decoder: DictionarySingleValueDecodingContainer, components: DictionaryKeyedComponents) {
+        switch decoder.context.options.keyDecodingStrategy {
         case .useDefaultKeys:
             self.components = components
 
         case let .custom(closure):
-            let codingPath = codingPathNode.path
+            let codingPath = decoder.codingPath
             let componentKeysAndValues = components.keysAndValues
                 .sorted { $0.key < $1.key }
                 .map { key, value in (closure(codingPath.appending(AnyCodingKey(key))).stringValue, value) }
@@ -126,26 +128,14 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             self.components = .native(Dictionary(componentKeysAndValues) { first, _ in first })
         }
 
-        self.context = context
-        self.codingPathNode = codingPathNode
+        self.decoder = decoder
     }
 
     // MARK: - Instance Methods
 
     @inline(__always)
-    private func component<T>(of type: T.Type = T.self, forKey key: Key) throws -> T {
-        let anyComponent = components[key.stringValue]
-
-        guard let component = anyComponent as? T else {
-            throw DecodingError.invalidComponent(
-                anyComponent,
-                forKey: key,
-                at: codingPathNode.appending(key).path,
-                expectation: type
-            )
-        }
-
-        return component
+    private func position(of key: CodingKey) -> CodingPosition {
+        CodingPosition(container: decoder, key: .key(key))
     }
 
     // Unlike the default implementation of `decodeIfPresent`, looks the key up once rather than in `contains`,
@@ -160,11 +150,11 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
     }
 
     @inline(__always)
-    private func superDecoder(forAnyKey key: CodingKey) throws -> Decoder {
+    private func superDecoder(forAnyKey key: CodingKey) -> DictionarySingleValueDecodingContainer {
         DictionarySingleValueDecodingContainer(
             component: components[key.stringValue],
             context: context,
-            codingPathNode: codingPathNode.appending(key)
+            position: position(of: key)
         )
     }
 
@@ -174,182 +164,149 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
         components[key.stringValue] != nil
     }
 
+    // A missing key decodes as `nil`, as it always has.
     internal func decodeNil(forKey key: Key) throws -> Bool {
-        context.decodeNilComponent(from: try component(forKey: key))
+        context.decodeNilComponent(from: components[key.stringValue])
     }
 
     internal func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodePrimitive(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decode(_ type: Int.Type, forKey key: Key) throws -> Int {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodePrimitive(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decode(_ type: Int8.Type, forKey key: Key) throws -> Int8 {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodePrimitive(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decode(_ type: Int16.Type, forKey key: Key) throws -> Int16 {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodePrimitive(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decode(_ type: Int32.Type, forKey key: Key) throws -> Int32 {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodePrimitive(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decode(_ type: Int64.Type, forKey key: Key) throws -> Int64 {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodePrimitive(type, from: components[key.stringValue], at: position(of: key))
     }
 
     @available(watchOS 11.0, *)
     internal func decode(_ type: Int128.Type, forKey key: Key) throws -> Int128 {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodeWideInteger(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decode(_ type: UInt.Type, forKey key: Key) throws -> UInt {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodePrimitive(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decode(_ type: UInt8.Type, forKey key: Key) throws -> UInt8 {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodePrimitive(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decode(_ type: UInt16.Type, forKey key: Key) throws -> UInt16 {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodePrimitive(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decode(_ type: UInt32.Type, forKey key: Key) throws -> UInt32 {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodePrimitive(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodePrimitive(type, from: components[key.stringValue], at: position(of: key))
     }
 
     @available(watchOS 11.0, *)
     internal func decode(_ type: UInt128.Type, forKey key: Key) throws -> UInt128 {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodeWideInteger(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decode(_ type: Double.Type, forKey key: Key) throws -> Double {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodeFloatingPoint(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decode(_ type: Float.Type, forKey key: Key) throws -> Float {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodeFloatingPoint(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decode(_ type: String.Type, forKey key: Key) throws -> String {
-        try context.decodeComponentValue(from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decodePrimitive(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decode<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T {
-        try context.decodeComponentValue(of: type, from: try component(forKey: key), at: codingPathNode.appending(key))
+        try context.decode(type, from: components[key.stringValue], at: position(of: key))
     }
 
     internal func decodeIfPresent(_ type: Bool.Type, forKey key: Key) throws -> Bool? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodePrimitive(type, from: $0, at: position(of: key)) }
     }
 
     internal func decodeIfPresent(_ type: Int.Type, forKey key: Key) throws -> Int? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodePrimitive(type, from: $0, at: position(of: key)) }
     }
 
     internal func decodeIfPresent(_ type: Int8.Type, forKey key: Key) throws -> Int8? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodePrimitive(type, from: $0, at: position(of: key)) }
     }
 
     internal func decodeIfPresent(_ type: Int16.Type, forKey key: Key) throws -> Int16? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodePrimitive(type, from: $0, at: position(of: key)) }
     }
 
     internal func decodeIfPresent(_ type: Int32.Type, forKey key: Key) throws -> Int32? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodePrimitive(type, from: $0, at: position(of: key)) }
     }
 
     internal func decodeIfPresent(_ type: Int64.Type, forKey key: Key) throws -> Int64? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodePrimitive(type, from: $0, at: position(of: key)) }
     }
 
     @available(watchOS 11.0, *)
     internal func decodeIfPresent(_ type: Int128.Type, forKey key: Key) throws -> Int128? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodeWideInteger(type, from: $0, at: position(of: key)) }
     }
 
     internal func decodeIfPresent(_ type: UInt.Type, forKey key: Key) throws -> UInt? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodePrimitive(type, from: $0, at: position(of: key)) }
     }
 
     internal func decodeIfPresent(_ type: UInt8.Type, forKey key: Key) throws -> UInt8? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodePrimitive(type, from: $0, at: position(of: key)) }
     }
 
     internal func decodeIfPresent(_ type: UInt16.Type, forKey key: Key) throws -> UInt16? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodePrimitive(type, from: $0, at: position(of: key)) }
     }
 
     internal func decodeIfPresent(_ type: UInt32.Type, forKey key: Key) throws -> UInt32? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodePrimitive(type, from: $0, at: position(of: key)) }
     }
 
     internal func decodeIfPresent(_ type: UInt64.Type, forKey key: Key) throws -> UInt64? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodePrimitive(type, from: $0, at: position(of: key)) }
     }
 
     @available(watchOS 11.0, *)
     internal func decodeIfPresent(_ type: UInt128.Type, forKey key: Key) throws -> UInt128? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodeWideInteger(type, from: $0, at: position(of: key)) }
     }
 
     internal func decodeIfPresent(_ type: Double.Type, forKey key: Key) throws -> Double? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodeFloatingPoint(type, from: $0, at: position(of: key)) }
     }
 
     internal func decodeIfPresent(_ type: Float.Type, forKey key: Key) throws -> Float? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodeFloatingPoint(type, from: $0, at: position(of: key)) }
     }
 
     internal func decodeIfPresent(_ type: String.Type, forKey key: Key) throws -> String? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decodePrimitive(type, from: $0, at: position(of: key)) }
     }
 
     internal func decodeIfPresent<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T? {
-        try decodeIfPresent(forKey: key) { component in
-            try context.decodeComponentValue(of: type, from: component, at: codingPathNode.appending(key))
-        }
+        try decodeIfPresent(forKey: key) { try context.decode(type, from: $0, at: position(of: key)) }
     }
 
     internal func nestedContainer<NestedKey: CodingKey>(
@@ -364,40 +321,10 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
     }
 
     internal func superDecoder(forKey key: Key) throws -> Decoder {
-        try superDecoder(forAnyKey: key)
+        superDecoder(forAnyKey: key)
     }
 
     internal func superDecoder() throws -> Decoder {
-        try superDecoder(forAnyKey: AnyCodingKey.super)
-    }
-}
-
-extension DecodingError {
-
-    // MARK: - Type Methods
-
-    fileprivate static func invalidComponent<Key: CodingKey>(
-        _ component: Any?,
-        forKey key: Key,
-        at codingPath: [CodingKey],
-        expectation: Any.Type
-    ) -> Self {
-        switch component {
-        case let component?:
-            let context = Context(
-                codingPath: codingPath,
-                debugDescription: "Expected to decode \(expectation) but found \(type(of: component)) instead."
-            )
-
-            return .typeMismatch(expectation, context)
-
-        case nil:
-            let context = Context(
-                codingPath: codingPath,
-                debugDescription: "No value associated with key \(key.stringValue)."
-            )
-
-            return .keyNotFound(key, context)
-        }
+        superDecoder(forAnyKey: AnyCodingKey.super)
     }
 }

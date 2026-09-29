@@ -26,13 +26,18 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
     // MARK: - Instance Methods
 
     @inline(__always)
+    internal func position(of key: CodingKey) -> CodingPosition {
+        CodingPosition(container: codingPathNode, key: .key(key))
+    }
+
+    @inline(__always)
     private func encodeKey<Key: CodingKey>(_ key: Key) -> String {
         switch context.options.keyEncodingStrategy {
         case .useDefaultKeys:
             return key.stringValue
 
         case let .custom(closure):
-            return closure(codingPathNode.appending(key).path).stringValue
+            return closure(position(of: key).path).stringValue
         }
     }
 
@@ -71,7 +76,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
         let container = DictionaryAnyKeyedEncodingContainer(
             context: context,
-            codingPathNode: codingPathNode.appending(key)
+            codingPathNode: CodingPathNode(position: position(of: key))
         )
 
         collectComponent(.container(container), forEncodedKey: encodedKey)
@@ -88,7 +93,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
         let container = DictionaryUnkeyedEncodingContainer(
             context: context,
-            codingPathNode: codingPathNode.appending(key)
+            codingPathNode: CodingPathNode(position: position(of: key))
         )
 
         collectComponent(.container(container), forEncodedKey: encodedKey)
@@ -105,7 +110,7 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
         let encoder = DictionarySingleValueEncodingContainer(
             context: context,
-            codingPathNode: codingPathNode.appending(key)
+            position: position(of: key)
         )
 
         collectComponent(.container(encoder), forEncodedKey: encodedKey)

@@ -1,4 +1,9 @@
+/// The decoder of a value, which is its single value container as well.
+///
+/// Every nested value is decoded with a decoder of its own, so the decoder is the node of the coding path
+/// of its value too, which the containers of the value point at.
 internal final class DictionarySingleValueDecodingContainer:
+    CodingPathNode,
     Decoder,
     SingleValueDecodingContainer {
 
@@ -6,10 +11,9 @@ internal final class DictionarySingleValueDecodingContainer:
 
     internal let component: Any?
     internal let context: DictionaryComponentDecoder
-    internal let codingPathNode: CodingPathNode
 
     internal var codingPath: [CodingKey] {
-        codingPathNode.path
+        path
     }
 
     internal var userInfo: [CodingUserInfoKey: Any] {
@@ -21,11 +25,12 @@ internal final class DictionarySingleValueDecodingContainer:
     internal init(
         component: Any?,
         context: DictionaryComponentDecoder,
-        codingPathNode: CodingPathNode
+        position: CodingPosition
     ) {
         self.component = component
         self.context = context
-        self.codingPathNode = codingPathNode
+
+        super.init(position: position)
     }
 
     // MARK: - Instance Methods
@@ -35,73 +40,73 @@ internal final class DictionarySingleValueDecodingContainer:
     }
 
     internal func decode(_ type: Bool.Type) throws -> Bool {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodePrimitive(type, from: component, at: position)
     }
 
     internal func decode(_ type: Int.Type) throws -> Int {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodePrimitive(type, from: component, at: position)
     }
 
     internal func decode(_ type: Int8.Type) throws -> Int8 {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodePrimitive(type, from: component, at: position)
     }
 
     internal func decode(_ type: Int16.Type) throws -> Int16 {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodePrimitive(type, from: component, at: position)
     }
 
     internal func decode(_ type: Int32.Type) throws -> Int32 {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodePrimitive(type, from: component, at: position)
     }
 
     internal func decode(_ type: Int64.Type) throws -> Int64 {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodePrimitive(type, from: component, at: position)
     }
 
     @available(watchOS 11.0, *)
     internal func decode(_ type: Int128.Type) throws -> Int128 {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodeWideInteger(type, from: component, at: position)
     }
 
     internal func decode(_ type: UInt.Type) throws -> UInt {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodePrimitive(type, from: component, at: position)
     }
 
     internal func decode(_ type: UInt8.Type) throws -> UInt8 {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodePrimitive(type, from: component, at: position)
     }
 
     internal func decode(_ type: UInt16.Type) throws -> UInt16 {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodePrimitive(type, from: component, at: position)
     }
 
     internal func decode(_ type: UInt32.Type) throws -> UInt32 {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodePrimitive(type, from: component, at: position)
     }
 
     internal func decode(_ type: UInt64.Type) throws -> UInt64 {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodePrimitive(type, from: component, at: position)
     }
 
     @available(watchOS 11.0, *)
     internal func decode(_ type: UInt128.Type) throws -> UInt128 {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodeWideInteger(type, from: component, at: position)
     }
 
     internal func decode(_ type: Double.Type) throws -> Double {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodeFloatingPoint(type, from: component, at: position)
     }
 
     internal func decode(_ type: Float.Type) throws -> Float {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodeFloatingPoint(type, from: component, at: position)
     }
 
     internal func decode(_ type: String.Type) throws -> String {
-        try context.decodeComponentValue(from: component, at: codingPathNode)
+        try context.decodePrimitive(type, from: component, at: position)
     }
 
     internal func decode<T: Decodable>(_ type: T.Type) throws -> T {
-        try context.decodeComponentValue(of: type, from: component, at: codingPathNode)
+        try context.decode(type, from: component, at: position)
     }
 
     // MARK: - Decoder
@@ -111,13 +116,7 @@ internal final class DictionarySingleValueDecodingContainer:
             throw DecodingError.keyedContainerTypeMismatch(at: codingPath, component: component)
         }
 
-        let container = DictionaryKeyedDecodingContainer<Key>(
-            components: components,
-            context: context,
-            codingPathNode: codingPathNode
-        )
-
-        return KeyedDecodingContainer(container)
+        return KeyedDecodingContainer(DictionaryKeyedDecodingContainer<Key>(decoder: self, components: components))
     }
 
     internal func unkeyedContainer() throws -> UnkeyedDecodingContainer {
@@ -125,11 +124,7 @@ internal final class DictionarySingleValueDecodingContainer:
             throw DecodingError.unkeyedContainerTypeMismatch(at: codingPath, component: component)
         }
 
-        return DictionaryUnkeyedDecodingContainer(
-            components: components,
-            context: context,
-            codingPathNode: codingPathNode
-        )
+        return DictionaryUnkeyedDecodingContainer(decoder: self, components: components)
     }
 
     internal func singleValueContainer() throws -> SingleValueDecodingContainer {

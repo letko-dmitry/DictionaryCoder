@@ -11,12 +11,12 @@ extension DictionaryComponentDecoder {
     internal func decodeConvertedNumber<T: Decodable>(
         of type: T.Type = T.self,
         from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> T {
         let number = component as? NSNumber
 
         guard let number, !isBoolean(number), !(T.self is Bool.Type), let value = number as? T else {
-            throw DecodingError.invalidComponent(component, of: T.self, at: codingPathNode().path)
+            throw DecodingError.invalidComponent(component, of: T.self, at: position().path)
         }
 
         return value
@@ -30,7 +30,7 @@ extension DictionaryComponentDecoder {
     // Decimals are decoded from numbers, as in `JSONDecoder`.
     internal func decodeDecimal(
         from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> Decimal {
         if let decimal = component as? Decimal {
             return decimal
@@ -42,18 +42,18 @@ extension DictionaryComponentDecoder {
 
         // Decimals encoded in their own keyed representation, as earlier versions did, are still decoded.
         if component is [String: Any] {
-            return try decodeNonPrimitiveValue(from: component, at: codingPathNode())
+            return try decodeNonPrimitiveValue(from: component, at: position())
         }
 
-        throw DecodingError.invalidComponent(component, of: Decimal.self, at: codingPathNode().path)
+        throw DecodingError.invalidComponent(component, of: Decimal.self, at: position().path)
     }
 
     // `NSNumber` does not bridge 128-bit integers, so other integers are converted exactly.
     @available(watchOS 11.0, *)
     internal func decodeWideInteger<T: FixedWidthInteger & Decodable>(
-        of type: T.Type = T.self,
+        _ type: T.Type,
         from component: Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> T {
         if let value = component as? T {
             return value
@@ -71,7 +71,7 @@ extension DictionaryComponentDecoder {
         }
 
         guard let value else {
-            throw DecodingError.invalidComponent(component, of: T.self, at: codingPathNode().path)
+            throw DecodingError.invalidComponent(component, of: T.self, at: position().path)
         }
 
         return value

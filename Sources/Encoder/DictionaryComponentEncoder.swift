@@ -1,5 +1,7 @@
 import Foundation
 
+/// Encodes values to components with the options and user info of a `DictionaryEncoder`,
+/// for the encoders of all values of a dictionary.
 internal final class DictionaryComponentEncoder {
 
     // MARK: - Instance Properties
@@ -19,18 +21,18 @@ internal final class DictionaryComponentEncoder {
     @inline(__always)
     private func encodePrimitiveValue(
         _ value: consuming Any?,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
         .value(value)
     }
 
     private func encodeNonPrimitiveValue<T: Encodable>(
         _ value: T,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> DictionaryComponent {
         let encoder = DictionarySingleValueEncodingContainer(
             context: self,
-            codingPathNode: codingPathNode()
+            position: position()
         )
 
         try value.encode(to: encoder)
@@ -40,12 +42,12 @@ internal final class DictionaryComponentEncoder {
 
     private func encodeCustomizedValue<T: Encodable>(
         _ value: T,
-        at codingPathNode: @autoclosure () -> CodingPathNode,
+        at position: @autoclosure () -> CodingPosition,
         closure: (_ value: T, _ encoder: Encoder) throws -> Void
     ) throws -> DictionaryComponent {
         let encoder = DictionarySingleValueEncodingContainer(
             context: self,
-            codingPathNode: codingPathNode()
+            position: position()
         )
 
         try closure(value, encoder)
@@ -53,112 +55,112 @@ internal final class DictionaryComponentEncoder {
         return .value(encoder.resolveValue())
     }
 
-    private func encodeNil(at codingPathNode: @autoclosure () -> CodingPathNode) -> DictionaryComponent {
+    private func encodeNil(at position: @autoclosure () -> CodingPosition) -> DictionaryComponent {
         switch options.nilEncodingStrategy {
         case .useNil:
-            return encodePrimitiveValue(nil, at: codingPathNode())
+            return encodePrimitiveValue(nil, at: position())
 
         case .useNSNull:
-            return encodePrimitiveValue(NSNull(), at: codingPathNode())
+            return encodePrimitiveValue(NSNull(), at: position())
         }
     }
 
     @inline(never)
     private func encodeDate<T>(
         _ value: T,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> DictionaryComponent {
         let date = value as! Date
 
         switch options.dateEncodingStrategy {
         case .deferredToDate:
-            return try encodeNonPrimitiveValue(date, at: codingPathNode())
+            return try encodeNonPrimitiveValue(date, at: position())
 
         case .millisecondsSince1970:
-            return encodePrimitiveValue(date.timeIntervalSince1970 * 1000.0, at: codingPathNode())
+            return encodePrimitiveValue(date.timeIntervalSince1970 * 1000.0, at: position())
 
         case .secondsSince1970:
-            return encodePrimitiveValue(date.timeIntervalSince1970, at: codingPathNode())
+            return encodePrimitiveValue(date.timeIntervalSince1970, at: position())
 
         case .iso8601:
-            return encodePrimitiveValue(Date.ISO8601FormatStyle.internetDateTime.format(date), at: codingPathNode())
+            return encodePrimitiveValue(Date.ISO8601FormatStyle.internetDateTime.format(date), at: position())
 
         case let .formatted(dateFormatter):
-            return encodePrimitiveValue(dateFormatter.string(from: date), at: codingPathNode())
+            return encodePrimitiveValue(dateFormatter.string(from: date), at: position())
 
         case let .custom(closure):
-            return try encodeCustomizedValue(date, at: codingPathNode(), closure: closure)
+            return try encodeCustomizedValue(date, at: position(), closure: closure)
         }
     }
 
     @inline(never)
     private func encodeData<T>(
         _ value: T,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> DictionaryComponent {
         let data = value as! Data
 
         switch options.dataEncodingStrategy {
         case .deferredToData:
-            return try encodeNonPrimitiveValue(data, at: codingPathNode())
+            return try encodeNonPrimitiveValue(data, at: position())
 
         case .base64:
-            return encodePrimitiveValue(data.base64EncodedString(), at: codingPathNode())
+            return encodePrimitiveValue(data.base64EncodedString(), at: position())
 
         case .blob:
-            return encodePrimitiveValue(data, at: codingPathNode())
+            return encodePrimitiveValue(data, at: position())
 
         case let .custom(closure):
-            return try encodeCustomizedValue(data, at: codingPathNode(), closure: closure)
+            return try encodeCustomizedValue(data, at: position(), closure: closure)
         }
     }
 
     private func encodeFloatingPoint<T: FloatingPoint & Encodable>(
         _ value: T,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> DictionaryComponent {
         if value.isFinite {
-            return encodePrimitiveValue(value, at: codingPathNode())
+            return encodePrimitiveValue(value, at: position())
         }
 
         switch options.nonConformingFloatEncodingStrategy {
         case let .convertToString(positiveInfinity, _, _) where value == T.infinity:
-            return encodePrimitiveValue(positiveInfinity, at: codingPathNode())
+            return encodePrimitiveValue(positiveInfinity, at: position())
 
         case let .convertToString(_, negativeInfinity, _) where value == -T.infinity:
-            return encodePrimitiveValue(negativeInfinity, at: codingPathNode())
+            return encodePrimitiveValue(negativeInfinity, at: position())
 
         case let .convertToString(_, _, nan):
-            return encodePrimitiveValue(nan, at: codingPathNode())
+            return encodePrimitiveValue(nan, at: position())
 
         case .throw:
-            throw EncodingError.invalidFloatingPointValue(value, at: codingPathNode().path)
+            throw EncodingError.invalidFloatingPointValue(value, at: position().path)
         }
     }
 
     @inline(never)
     private func encodeURL<T>(
         _ value: T,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> DictionaryComponent {
-        encodePrimitiveValue((value as! URL).absoluteString, at: codingPathNode())
+        encodePrimitiveValue((value as! URL).absoluteString, at: position())
     }
 
     @inline(never)
     private func encodeFloatingPoint<T, Number: FloatingPoint & Encodable>(
         _ value: T,
         as type: Number.Type,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> DictionaryComponent {
-        try encodeFloatingPoint(value as! Number, at: codingPathNode())
+        try encodeFloatingPoint(value as! Number, at: position())
     }
 
     @inline(never)
     private func encodeUnchangedValue<T>(
         _ value: T,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     // Casts the value, so it is called only for arrays of primitive values:
@@ -223,152 +225,152 @@ internal final class DictionaryComponentEncoder {
     // MARK: -
 
     @inline(__always)
-    internal func encodeNilComponent(at codingPathNode: @autoclosure () -> CodingPathNode) -> DictionaryComponent {
-        encodeNil(at: codingPathNode())
+    internal func encodeNilComponent(at position: @autoclosure () -> CodingPosition) -> DictionaryComponent {
+        encodeNil(at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue(
         _ value: Bool,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue(
         _ value: Int,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue(
         _ value: Int8,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue(
         _ value: Int16,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue(
         _ value: Int32,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue(
         _ value: Int64,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     @available(watchOS 11.0, *)
     @inline(__always)
     internal func encodeComponentValue(
         _ value: Int128,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue(
         _ value: UInt,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue(
         _ value: UInt8,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue(
         _ value: UInt16,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue(
         _ value: UInt32,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue(
         _ value: UInt64,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     @available(watchOS 11.0, *)
     @inline(__always)
     internal func encodeComponentValue(
         _ value: UInt128,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue(
         _ value: Double,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> DictionaryComponent {
-        try encodeFloatingPoint(value, at: codingPathNode())
+        try encodeFloatingPoint(value, at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue(
         _ value: Float,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> DictionaryComponent {
-        try encodeFloatingPoint(value, at: codingPathNode())
+        try encodeFloatingPoint(value, at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue(
         _ value: String,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: codingPathNode())
+        encodePrimitiveValue(value, at: position())
     }
 
     @inline(__always)
     internal func encodeComponentValue<T: Encodable>(
         _ value: T,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> DictionaryComponent {
         // Primitive values are encoded in place,
         // so that an array of numbers, for example, does not create a nested encoder for each element.
         if PrimitiveTypes.contains(T.self) {
-            return encodePrimitiveValue(value, at: codingPathNode())
+            return encodePrimitiveValue(value, at: position())
         }
 
-        return try encodeTypedValue(value, at: codingPathNode())
+        return try encodeTypedValue(value, at: position())
     }
 
     // Kept out of `encodeComponentValue`, as the compiler allocates stack for the Foundation values here
@@ -376,44 +378,44 @@ internal final class DictionaryComponentEncoder {
     @inline(never)
     private func encodeTypedValue<T: Encodable>(
         _ value: T,
-        at codingPathNode: @autoclosure () -> CodingPathNode
+        at position: @autoclosure () -> CodingPosition
     ) throws -> DictionaryComponent {
         // The value is converted only in the functions called for its type, as the compiler reserves stack space
         // for a conversion on entry to the function that makes it, whatever the type of the value.
         switch ObjectIdentifier(T.self) {
         case ObjectIdentifier(Double.self):
-            return try encodeFloatingPoint(value, as: Double.self, at: codingPathNode())
+            return try encodeFloatingPoint(value, as: Double.self, at: position())
 
         case ObjectIdentifier(Float.self):
-            return try encodeFloatingPoint(value, as: Float.self, at: codingPathNode())
+            return try encodeFloatingPoint(value, as: Float.self, at: position())
 
         case ObjectIdentifier(Date.self):
-            return try encodeDate(value, at: codingPathNode())
+            return try encodeDate(value, at: position())
 
         case ObjectIdentifier(Data.self):
-            return try encodeData(value, at: codingPathNode())
+            return try encodeData(value, at: position())
 
         case ObjectIdentifier(URL.self):
-            return try encodeURL(value, at: codingPathNode())
+            return try encodeURL(value, at: position())
 
         // Decimals are kept as numbers, as in `JSONEncoder`, rather than encoded in their own keyed representation.
         case ObjectIdentifier(Decimal.self):
-            return encodeUnchangedValue(value, at: codingPathNode())
+            return encodeUnchangedValue(value, at: position())
 
         default:
             // Arrays of primitive values are encoded in place as well,
             // bypassing `Array.encode(to:)` that goes through an unkeyed container for every element.
             if PrimitiveArrayType.contains(T.self), let elements = encodePrimitiveArray(value) {
-                return encodePrimitiveValue(elements, at: codingPathNode())
+                return encodePrimitiveValue(elements, at: position())
             }
 
             if #available(watchOS 11.0, *) {
                 if T.self == Int128.self || T.self == UInt128.self {
-                    return encodeUnchangedValue(value, at: codingPathNode())
+                    return encodeUnchangedValue(value, at: position())
                 }
             }
 
-            return try encodeNonPrimitiveValue(value, at: codingPathNode())
+            return try encodeNonPrimitiveValue(value, at: position())
         }
     }
 }
