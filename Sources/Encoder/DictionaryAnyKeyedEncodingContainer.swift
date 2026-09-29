@@ -26,11 +26,6 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
     // MARK: - Instance Methods
 
     @inline(__always)
-    internal func position(of key: CodingKey) -> CodingPosition {
-        CodingPosition(container: codingPathNode, key: .key(key))
-    }
-
-    @inline(__always)
     private func encodeKey<Key: CodingKey>(_ key: Key) -> String {
         switch context.options.keyEncodingStrategy {
         case .useDefaultKeys:
@@ -41,81 +36,63 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
         }
     }
 
+    private func collect(_ container: DictionaryComponentContainer, forEncodedKey key: String) {
+        values[key] = nil
+        containers[key] = container
+    }
+
+    /// The nested container of the kind that is stored for the key, or a new one that replaces what is stored for it.
+    private func nestedContainer<Key: CodingKey, Container: DictionaryComponentContainer>(
+        forKey key: Key,
+        makeContainer: (_ position: CodingPosition) -> Container
+    ) -> Container {
+        let encodedKey = encodeKey(key)
+
+        if let container = containers[encodedKey] as? Container {
+            return container
+        }
+
+        let container = makeContainer(position(of: key))
+
+        collect(container, forEncodedKey: encodedKey)
+
+        return container
+    }
+
     // MARK: -
 
     @inline(__always)
-    internal func collectComponent<Key: CodingKey>(_ component: consuming DictionaryComponent, forKey key: Key) {
-        collectComponent(component, forEncodedKey: encodeKey(key))
+    internal func position(of key: CodingKey) -> CodingPosition {
+        CodingPosition(container: codingPathNode, key: .key(key))
     }
 
     @inline(__always)
-    private func collectComponent(_ component: consuming DictionaryComponent, forEncodedKey key: String) {
-        switch component {
-        case let .value(value):
-            if !containers.isEmpty {
-                containers[key] = nil
-            }
+    internal func collect<Key: CodingKey>(_ component: consuming Any?, forKey key: Key) {
+        let key = encodeKey(key)
 
-            values[key] = value
+        if !containers.isEmpty {
+            containers[key] = nil
+        }
 
-        case let .container(container):
-            values[key] = nil
-            containers[key] = container
+        values[key] = component
+    }
+
+    internal func nestedContainer<Key: CodingKey>(forKey key: Key) -> DictionaryAnyKeyedEncodingContainer {
+        nestedContainer(forKey: key) { position in
+            DictionaryAnyKeyedEncodingContainer(context: context, codingPathNode: CodingPathNode(position: position))
         }
     }
 
-    internal func nestedContainer<Key: CodingKey, NestedKey: CodingKey>(
-        keyedBy keyType: NestedKey.Type,
-        forKey key: Key
-    ) -> DictionaryAnyKeyedEncodingContainer {
-        let encodedKey = encodeKey(key)
-
-        if let container = containers[encodedKey] as? Self {
-            return container
+    internal func nestedUnkeyedContainer<Key: CodingKey>(forKey key: Key) -> DictionaryUnkeyedEncodingContainer {
+        nestedContainer(forKey: key) { position in
+            DictionaryUnkeyedEncodingContainer(context: context, codingPathNode: CodingPathNode(position: position))
         }
-
-        let container = DictionaryAnyKeyedEncodingContainer(
-            context: context,
-            codingPathNode: CodingPathNode(position: position(of: key))
-        )
-
-        collectComponent(.container(container), forEncodedKey: encodedKey)
-
-        return container
     }
 
-    internal func nestedUnkeyedContainer<Key: CodingKey>(forKey key: Key) -> UnkeyedEncodingContainer {
-        let encodedKey = encodeKey(key)
-
-        if let container = containers[encodedKey] as? DictionaryUnkeyedEncodingContainer {
-            return container
+    internal func superEncoder<Key: CodingKey>(forKey key: Key) -> DictionarySingleValueEncodingContainer {
+        nestedContainer(forKey: key) { position in
+            DictionarySingleValueEncodingContainer(context: context, position: position)
         }
-
-        let container = DictionaryUnkeyedEncodingContainer(
-            context: context,
-            codingPathNode: CodingPathNode(position: position(of: key))
-        )
-
-        collectComponent(.container(container), forEncodedKey: encodedKey)
-
-        return container
-    }
-
-    internal func superEncoder<Key: CodingKey>(forKey key: Key) -> Encoder {
-        let encodedKey = encodeKey(key)
-
-        if let container = containers[encodedKey] as? DictionarySingleValueEncodingContainer {
-            return container
-        }
-
-        let encoder = DictionarySingleValueEncodingContainer(
-            context: context,
-            position: position(of: key)
-        )
-
-        collectComponent(.container(encoder), forEncodedKey: encodedKey)
-
-        return encoder
     }
 
     // MARK: - DictionaryComponentContainer

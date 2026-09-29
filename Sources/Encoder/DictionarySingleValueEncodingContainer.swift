@@ -35,7 +35,7 @@ internal final class DictionarySingleValueEncodingContainer:
     // MARK: - Instance Methods
 
     @inline(__always)
-    private func collectComponent(_ component: consuming DictionaryComponent, for value: Any?) throws {
+    private func collect(_ component: consuming Any?, of value: Any?) throws {
         guard self.component == nil else {
             let errorContext = EncodingError.Context(
                 codingPath: codingPath,
@@ -45,92 +45,90 @@ internal final class DictionarySingleValueEncodingContainer:
             throw EncodingError.invalidValue(value as Any, errorContext)
         }
 
-        self.component = component
+        self.component = .value(component)
     }
 
     // MARK: - SingleValueEncodingContainer
 
     internal func encodeNil() throws {
-        try collectComponent(context.encodeNilComponent(at: position), for: nil)
+        try collect(context.encodeNil(), of: nil)
     }
 
     internal func encode(_ value: Bool) throws {
-        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
+        try collect(value, of: value)
     }
 
     internal func encode(_ value: Int) throws {
-        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
+        try collect(value, of: value)
     }
 
     internal func encode(_ value: Int8) throws {
-        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
+        try collect(value, of: value)
     }
 
     internal func encode(_ value: Int16) throws {
-        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
+        try collect(value, of: value)
     }
 
     internal func encode(_ value: Int32) throws {
-        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
+        try collect(value, of: value)
     }
 
     internal func encode(_ value: Int64) throws {
-        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
+        try collect(value, of: value)
     }
 
     @available(watchOS 11.0, *)
     internal func encode(_ value: Int128) throws {
-        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
+        try collect(value, of: value)
     }
 
     internal func encode(_ value: UInt) throws {
-        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
+        try collect(value, of: value)
     }
 
     internal func encode(_ value: UInt8) throws {
-        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
+        try collect(value, of: value)
     }
 
     internal func encode(_ value: UInt16) throws {
-        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
+        try collect(value, of: value)
     }
 
     internal func encode(_ value: UInt32) throws {
-        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
+        try collect(value, of: value)
     }
 
     internal func encode(_ value: UInt64) throws {
-        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
+        try collect(value, of: value)
     }
 
     @available(watchOS 11.0, *)
     internal func encode(_ value: UInt128) throws {
-        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
+        try collect(value, of: value)
     }
 
     internal func encode(_ value: Double) throws {
-        try collectComponent(try context.encodeComponentValue(value, at: position), for: value)
+        try collect(context.encodeFloatingPoint(value, at: position), of: value)
     }
 
     internal func encode(_ value: Float) throws {
-        try collectComponent(try context.encodeComponentValue(value, at: position), for: value)
+        try collect(context.encodeFloatingPoint(value, at: position), of: value)
     }
 
     internal func encode(_ value: String) throws {
-        try collectComponent(context.encodeComponentValue(value, at: position), for: value)
+        try collect(value, of: value)
     }
 
     internal func encode<T: Encodable>(_ value: T) throws {
-        try collectComponent(try context.encodeComponentValue(value, at: position), for: value)
+        try collect(context.encode(value, at: position), of: value)
     }
 
     // MARK: - Encoder
 
     internal func container<Key: CodingKey>(keyedBy keyType: Key.Type) -> KeyedEncodingContainer<Key> {
         if case let .container(container as DictionaryAnyKeyedEncodingContainer) = component {
-            return KeyedEncodingContainer(
-                DictionaryKeyedEncodingContainer<Key>(container: container)
-            )
+            return KeyedEncodingContainer(DictionaryKeyedEncodingContainer<Key>(container: container))
         }
 
         let container = DictionaryAnyKeyedEncodingContainer(
@@ -140,9 +138,7 @@ internal final class DictionarySingleValueEncodingContainer:
 
         component = .container(container)
 
-        return KeyedEncodingContainer(
-            DictionaryKeyedEncodingContainer<Key>(container: container)
-        )
+        return KeyedEncodingContainer(DictionaryKeyedEncodingContainer<Key>(container: container))
     }
 
     internal func unkeyedContainer() -> UnkeyedEncodingContainer {

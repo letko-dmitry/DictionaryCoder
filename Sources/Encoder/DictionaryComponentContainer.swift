@@ -1,4 +1,4 @@
-internal protocol DictionaryComponentContainer {
+internal protocol DictionaryComponentContainer: AnyObject {
 
     // MARK: - Instance Methods
 

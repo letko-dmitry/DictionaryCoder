@@ -18,18 +18,10 @@ internal final class DictionaryComponentEncoder {
 
     // MARK: - Instance Methods
 
-    @inline(__always)
-    private func encodePrimitiveValue(
-        _ value: consuming Any?,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        .value(value)
-    }
-
     private func encodeNonPrimitiveValue<T: Encodable>(
         _ value: T,
         at position: @autoclosure () -> CodingPosition
-    ) throws -> DictionaryComponent {
+    ) throws -> Any? {
         let encoder = DictionarySingleValueEncodingContainer(
             context: self,
             position: position()
@@ -37,14 +29,14 @@ internal final class DictionaryComponentEncoder {
 
         try value.encode(to: encoder)
 
-        return .value(encoder.resolveValue())
+        return encoder.resolveValue()
     }
 
     private func encodeCustomizedValue<T: Encodable>(
         _ value: T,
         at position: @autoclosure () -> CodingPosition,
         closure: (_ value: T, _ encoder: Encoder) throws -> Void
-    ) throws -> DictionaryComponent {
+    ) throws -> Any? {
         let encoder = DictionarySingleValueEncodingContainer(
             context: self,
             position: position()
@@ -52,24 +44,14 @@ internal final class DictionaryComponentEncoder {
 
         try closure(value, encoder)
 
-        return .value(encoder.resolveValue())
-    }
-
-    private func encodeNil(at position: @autoclosure () -> CodingPosition) -> DictionaryComponent {
-        switch options.nilEncodingStrategy {
-        case .useNil:
-            return encodePrimitiveValue(nil, at: position())
-
-        case .useNSNull:
-            return encodePrimitiveValue(NSNull(), at: position())
-        }
+        return encoder.resolveValue()
     }
 
     @inline(never)
     private func encodeDate<T>(
         _ value: T,
         at position: @autoclosure () -> CodingPosition
-    ) throws -> DictionaryComponent {
+    ) throws -> Any? {
         let date = value as! Date
 
         switch options.dateEncodingStrategy {
@@ -77,16 +59,16 @@ internal final class DictionaryComponentEncoder {
             return try encodeNonPrimitiveValue(date, at: position())
 
         case .millisecondsSince1970:
-            return encodePrimitiveValue(date.timeIntervalSince1970 * 1000.0, at: position())
+            return date.timeIntervalSince1970 * 1000.0
 
         case .secondsSince1970:
-            return encodePrimitiveValue(date.timeIntervalSince1970, at: position())
+            return date.timeIntervalSince1970
 
         case .iso8601:
-            return encodePrimitiveValue(Date.ISO8601FormatStyle.internetDateTime.format(date), at: position())
+            return Date.ISO8601FormatStyle.internetDateTime.format(date)
 
         case let .formatted(dateFormatter):
-            return encodePrimitiveValue(dateFormatter.string(from: date), at: position())
+            return dateFormatter.string(from: date)
 
         case let .custom(closure):
             return try encodeCustomizedValue(date, at: position(), closure: closure)
@@ -97,7 +79,7 @@ internal final class DictionaryComponentEncoder {
     private func encodeData<T>(
         _ value: T,
         at position: @autoclosure () -> CodingPosition
-    ) throws -> DictionaryComponent {
+    ) throws -> Any? {
         let data = value as! Data
 
         switch options.dataEncodingStrategy {
@@ -105,45 +87,19 @@ internal final class DictionaryComponentEncoder {
             return try encodeNonPrimitiveValue(data, at: position())
 
         case .base64:
-            return encodePrimitiveValue(data.base64EncodedString(), at: position())
+            return data.base64EncodedString()
 
         case .blob:
-            return encodePrimitiveValue(data, at: position())
+            return data
 
         case let .custom(closure):
             return try encodeCustomizedValue(data, at: position(), closure: closure)
         }
     }
 
-    private func encodeFloatingPoint<T: FloatingPoint & Encodable>(
-        _ value: T,
-        at position: @autoclosure () -> CodingPosition
-    ) throws -> DictionaryComponent {
-        if value.isFinite {
-            return encodePrimitiveValue(value, at: position())
-        }
-
-        switch options.nonConformingFloatEncodingStrategy {
-        case let .convertToString(positiveInfinity, _, _) where value == T.infinity:
-            return encodePrimitiveValue(positiveInfinity, at: position())
-
-        case let .convertToString(_, negativeInfinity, _) where value == -T.infinity:
-            return encodePrimitiveValue(negativeInfinity, at: position())
-
-        case let .convertToString(_, _, nan):
-            return encodePrimitiveValue(nan, at: position())
-
-        case .throw:
-            throw EncodingError.invalidFloatingPointValue(value, at: position().path)
-        }
-    }
-
     @inline(never)
-    private func encodeURL<T>(
-        _ value: T,
-        at position: @autoclosure () -> CodingPosition
-    ) throws -> DictionaryComponent {
-        encodePrimitiveValue((value as! URL).absoluteString, at: position())
+    private func encodeURL<T>(_ value: T) -> Any? {
+        (value as! URL).absoluteString
     }
 
     @inline(never)
@@ -151,16 +107,13 @@ internal final class DictionaryComponentEncoder {
         _ value: T,
         as type: Number.Type,
         at position: @autoclosure () -> CodingPosition
-    ) throws -> DictionaryComponent {
+    ) throws -> Any? {
         try encodeFloatingPoint(value as! Number, at: position())
     }
 
     @inline(never)
-    private func encodeUnchangedValue<T>(
-        _ value: T,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
+    private func encodeUnchangedValue<T>(_ value: T) -> Any? {
+        value
     }
 
     // Casts the value, so it is called only for arrays of primitive values:
@@ -224,162 +177,62 @@ internal final class DictionaryComponentEncoder {
 
     // MARK: -
 
-    @inline(__always)
-    internal func encodeNilComponent(at position: @autoclosure () -> CodingPosition) -> DictionaryComponent {
-        encodeNil(at: position())
+    internal func encodeNil() -> Any? {
+        switch options.nilEncodingStrategy {
+        case .useNil:
+            nil
+
+        case .useNSNull:
+            NSNull()
+        }
     }
 
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: Bool,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
-    }
-
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: Int,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
-    }
-
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: Int8,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
-    }
-
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: Int16,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
-    }
-
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: Int32,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
-    }
-
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: Int64,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
-    }
-
-    @available(watchOS 11.0, *)
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: Int128,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
-    }
-
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: UInt,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
-    }
-
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: UInt8,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
-    }
-
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: UInt16,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
-    }
-
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: UInt32,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
-    }
-
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: UInt64,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
-    }
-
-    @available(watchOS 11.0, *)
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: UInt128,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
-    }
-
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: Double,
-        at position: @autoclosure () -> CodingPosition
-    ) throws -> DictionaryComponent {
-        try encodeFloatingPoint(value, at: position())
-    }
-
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: Float,
-        at position: @autoclosure () -> CodingPosition
-    ) throws -> DictionaryComponent {
-        try encodeFloatingPoint(value, at: position())
-    }
-
-    @inline(__always)
-    internal func encodeComponentValue(
-        _ value: String,
-        at position: @autoclosure () -> CodingPosition
-    ) -> DictionaryComponent {
-        encodePrimitiveValue(value, at: position())
-    }
-
-    @inline(__always)
-    internal func encodeComponentValue<T: Encodable>(
+    internal func encodeFloatingPoint<T: FloatingPoint & Encodable>(
         _ value: T,
         at position: @autoclosure () -> CodingPosition
-    ) throws -> DictionaryComponent {
+    ) throws -> Any? {
+        if value.isFinite {
+            return value
+        }
+
+        switch options.nonConformingFloatEncodingStrategy {
+        case let .convertToString(positiveInfinity, _, _) where value == T.infinity:
+            return positiveInfinity
+
+        case let .convertToString(_, negativeInfinity, _) where value == -T.infinity:
+            return negativeInfinity
+
+        case let .convertToString(_, _, nan):
+            return nan
+
+        case .throw:
+            throw EncodingError.invalidFloatingPointValue(value, at: position().path)
+        }
+    }
+
+    /// Encodes a value of any type: values that dictionaries hold as they are, such as numbers and arrays of them,
+    /// are kept in place, and other values encode themselves with encoders of their own.
+    @inline(__always)
+    internal func encode<T: Encodable>(
+        _ value: T,
+        at position: @autoclosure () -> CodingPosition
+    ) throws -> Any? {
         // Primitive values are encoded in place,
         // so that an array of numbers, for example, does not create a nested encoder for each element.
         if PrimitiveTypes.contains(T.self) {
-            return encodePrimitiveValue(value, at: position())
+            return value
         }
 
         return try encodeTypedValue(value, at: position())
     }
 
-    // Kept out of `encodeComponentValue`, as the compiler allocates stack for the Foundation values here
+    // Kept out of `encode(_:at:)`, as the compiler allocates stack for the Foundation values here
     // on entry to the function, which would slow down encoding of every primitive value.
     @inline(never)
     private func encodeTypedValue<T: Encodable>(
         _ value: T,
         at position: @autoclosure () -> CodingPosition
-    ) throws -> DictionaryComponent {
+    ) throws -> Any? {
         // The value is converted only in the functions called for its type, as the compiler reserves stack space
         // for a conversion on entry to the function that makes it, whatever the type of the value.
         switch ObjectIdentifier(T.self) {
@@ -396,22 +249,22 @@ internal final class DictionaryComponentEncoder {
             return try encodeData(value, at: position())
 
         case ObjectIdentifier(URL.self):
-            return try encodeURL(value, at: position())
+            return encodeURL(value)
 
         // Decimals are kept as numbers, as in `JSONEncoder`, rather than encoded in their own keyed representation.
         case ObjectIdentifier(Decimal.self):
-            return encodeUnchangedValue(value, at: position())
+            return encodeUnchangedValue(value)
 
         default:
             // Arrays of primitive values are encoded in place as well,
             // bypassing `Array.encode(to:)` that goes through an unkeyed container for every element.
             if PrimitiveArrayType.contains(T.self), let elements = encodePrimitiveArray(value) {
-                return encodePrimitiveValue(elements, at: position())
+                return elements
             }
 
             if #available(watchOS 11.0, *) {
                 if T.self == Int128.self || T.self == UInt128.self {
-                    return encodeUnchangedValue(value, at: position())
+                    return encodeUnchangedValue(value)
                 }
             }
 
