@@ -43,12 +43,18 @@ internal final class DictionaryUnkeyedEncodingContainer:
 
     // `[Any]` cannot hold `nil` itself, so `nil` is kept as an element wrapped in `Any`.
     @inline(__always)
-    private func element(from component: Any?) -> Any {
-        component ?? component as Any
+    private func element(from component: consuming Any?) -> Any {
+        switch consume component {
+        case let value?:
+            value
+
+        case nil:
+            Optional<Any>.none as Any
+        }
     }
 
     @inline(__always)
-    private func collect(_ component: Any?) {
+    private func collect(_ component: consuming Any?) {
         append(element(from: component))
     }
 
@@ -163,7 +169,12 @@ internal final class DictionaryUnkeyedEncodingContainer:
 
     // MARK: - DictionaryComponentContainer
 
+    // The values are taken rather than copied, as a container is resolved once, along with the value it encodes.
     internal func resolveValue() -> Any? {
+        var values: [Any] = []
+
+        swap(&values, &self.values)
+
         for (index, container) in containers {
             values[index] = element(from: container.resolveValue())
         }

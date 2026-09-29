@@ -122,10 +122,10 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
         return components[currentIndex]
     }
 
+    // Returns a value decoded from the current component and moves to the next one,
+    // so that the container stays at a component that fails to decode.
     @inline(__always)
-    private func decodeNextComponent<T>(_ decodeComponent: (_ component: consuming Any?) throws -> T) throws -> T {
-        let value = try decodeComponent(try peekNextComponent())
-
+    private func advancing<T>(_ value: consuming T) -> T {
         currentIndex += 1
 
         return value
@@ -153,86 +153,86 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
     }
 
     internal func decode(_ type: Bool.Type) throws -> Bool {
-        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
+        try advancing(context.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func decode(_ type: Int.Type) throws -> Int {
-        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
+        try advancing(context.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func decode(_ type: Int8.Type) throws -> Int8 {
-        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
+        try advancing(context.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func decode(_ type: Int16.Type) throws -> Int16 {
-        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
+        try advancing(context.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func decode(_ type: Int32.Type) throws -> Int32 {
-        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
+        try advancing(context.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func decode(_ type: Int64.Type) throws -> Int64 {
-        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
+        try advancing(context.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
     @available(watchOS 11.0, *)
     internal func decode(_ type: Int128.Type) throws -> Int128 {
-        try decodeNextComponent { try context.decodeWideInteger(type, from: $0, at: currentPosition) }
+        try advancing(context.decodeWideInteger(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func decode(_ type: UInt.Type) throws -> UInt {
-        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
+        try advancing(context.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func decode(_ type: UInt8.Type) throws -> UInt8 {
-        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
+        try advancing(context.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func decode(_ type: UInt16.Type) throws -> UInt16 {
-        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
+        try advancing(context.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func decode(_ type: UInt32.Type) throws -> UInt32 {
-        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
+        try advancing(context.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func decode(_ type: UInt64.Type) throws -> UInt64 {
-        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
+        try advancing(context.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
     @available(watchOS 11.0, *)
     internal func decode(_ type: UInt128.Type) throws -> UInt128 {
-        try decodeNextComponent { try context.decodeWideInteger(type, from: $0, at: currentPosition) }
+        try advancing(context.decodeWideInteger(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func decode(_ type: Double.Type) throws -> Double {
-        try decodeNextComponent { try context.decodeFloatingPoint(type, from: $0, at: currentPosition) }
+        try advancing(context.decodeFloatingPoint(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func decode(_ type: Float.Type) throws -> Float {
-        try decodeNextComponent { try context.decodeFloatingPoint(type, from: $0, at: currentPosition) }
+        try advancing(context.decodeFloatingPoint(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func decode(_ type: String.Type) throws -> String {
-        try decodeNextComponent { try context.decodePrimitive(type, from: $0, at: currentPosition) }
+        try advancing(context.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func decode<T: Decodable>(_ type: T.Type) throws -> T {
-        try decodeNextComponent { try context.decode(type, from: $0, at: currentPosition) }
+        try advancing(context.decode(type, from: peekNextComponent(), at: currentPosition))
     }
 
     internal func nestedContainer<NestedKey: CodingKey>(
         keyedBy keyType: NestedKey.Type
     ) throws -> KeyedDecodingContainer<NestedKey> {
-        try decodeNextComponent { try superDecoder(for: $0).container(keyedBy: keyType) }
+        try advancing(superDecoder(for: peekNextComponent()).container(keyedBy: keyType))
     }
 
     internal func nestedUnkeyedContainer() throws -> UnkeyedDecodingContainer {
-        try decodeNextComponent { try superDecoder(for: $0).unkeyedContainer() }
+        try advancing(superDecoder(for: peekNextComponent()).unkeyedContainer())
     }
 
     internal func superDecoder() throws -> Decoder {
-        try decodeNextComponent { superDecoder(for: $0) }
+        try advancing(superDecoder(for: peekNextComponent()))
     }
 }

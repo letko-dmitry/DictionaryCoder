@@ -97,7 +97,12 @@ internal final class DictionaryAnyKeyedEncodingContainer: DictionaryComponentCon
 
     // MARK: - DictionaryComponentContainer
 
+    // The values are taken rather than copied, as a container is resolved once, along with the value it encodes.
     internal func resolveValue() -> Any? {
+        var values: [String: Any] = [:]
+
+        swap(&values, &self.values)
+
         for (key, container) in containers {
             values[key] = container.resolveValue()
         }

@@ -7,13 +7,13 @@ internal enum DictionaryComponent {
 
     // MARK: - Instance Methods
 
-    internal func resolveValue() -> Any? {
-        switch self {
+    internal consuming func resolveValue() -> Any? {
+        switch consume self {
         case .value(let value):
-            return value
+            value
 
         case .container(let container):
-            return container.resolveValue()
+            container.resolveValue()
         }
     }
 }

@@ -162,7 +162,8 @@ internal final class DictionarySingleValueEncodingContainer:
 
     // MARK: - DictionaryComponentContainer
 
+    // The component is taken rather than copied, as a value is resolved once, when it is encoded.
     internal func resolveValue() -> Any? {
-        component?.resolveValue()
+        component.take()?.resolveValue()
     }
 }
