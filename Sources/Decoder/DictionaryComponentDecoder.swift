@@ -321,14 +321,26 @@ internal final class DictionaryComponentDecoder {
         from component: consuming Any?,
         at codingPathNode: @autoclosure () -> CodingPathNode
     ) throws -> T {
-        switch T.self {
-        case is Date.Type:
+        // Primitive values are decoded in place,
+        // so that an array of numbers, for example, does not create a nested decoder for each element.
+        if PrimitiveTypes.contains(type) {
+            return try decodePrimitiveValue(of: type, from: component, at: codingPathNode())
+        }
+
+        switch ObjectIdentifier(type) {
+        case ObjectIdentifier(Double.self):
+            return try decodeFloatingPointValue(from: component, at: codingPathNode()) as Double as! T
+
+        case ObjectIdentifier(Float.self):
+            return try decodeFloatingPointValue(from: component, at: codingPathNode()) as Float as! T
+
+        case ObjectIdentifier(Date.self):
             return try decodeDate(from: component, at: codingPathNode()) as! T
 
-        case is Data.Type:
+        case ObjectIdentifier(Data.self):
             return try decodeData(from: component, at: codingPathNode()) as! T
 
-        case is URL.Type:
+        case ObjectIdentifier(URL.self):
             return try decodeURL(from: component, at: codingPathNode()) as! T
 
         default:

@@ -260,15 +260,27 @@ internal final class DictionaryComponentEncoder {
         _ value: T,
         at codingPathNode: @autoclosure () -> CodingPathNode
     ) throws -> DictionaryComponent {
-        switch value {
-        case let date as Date:
-            return try encodeDate(date, at: codingPathNode())
+        // Primitive values are encoded in place,
+        // so that an array of numbers, for example, does not create a nested encoder for each element.
+        if PrimitiveTypes.contains(T.self) {
+            return encodePrimitiveValue(value, at: codingPathNode())
+        }
 
-        case let data as Data:
-            return try encodeData(data, at: codingPathNode())
+        switch ObjectIdentifier(T.self) {
+        case ObjectIdentifier(Double.self):
+            return try encodeFloatingPoint(value as! Double, at: codingPathNode())
 
-        case let url as URL:
-            return try encodeURL(url, at: codingPathNode())
+        case ObjectIdentifier(Float.self):
+            return try encodeFloatingPoint(value as! Float, at: codingPathNode())
+
+        case ObjectIdentifier(Date.self):
+            return try encodeDate(value as! Date, at: codingPathNode())
+
+        case ObjectIdentifier(Data.self):
+            return try encodeData(value as! Data, at: codingPathNode())
+
+        case ObjectIdentifier(URL.self):
+            return try encodeURL(value as! URL, at: codingPathNode())
 
         default:
             return try encodeNonPrimitiveValue(value, at: codingPathNode())

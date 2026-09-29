@@ -142,6 +142,27 @@ final class DictionaryEncoderTests: XCTestCase, DictionaryEncoderTesting {
         assertEncoderSucceeds(encoding: value)
     }
 
+    func testThatEncoderSucceedsWhenEncodingArraysOfPrimitives() {
+        struct EncodableStruct: Encodable {
+            let bools = [true, false]
+            let strings = ["foo", "bar"]
+            let ints = [1, -2]
+            let int8s: [Int8] = [1, -2]
+            let int16s: [Int16] = [1, -2]
+            let int32s: [Int32] = [1, -2]
+            let int64s: [Int64] = [1, -2]
+            let uints: [UInt] = [1, 2]
+            let uint8s: [UInt8] = [1, 2]
+            let uint16s: [UInt16] = [1, 2]
+            let uint32s: [UInt32] = [1, 2]
+            let uint64s: [UInt64] = [1, 2]
+            let doubles = [1.5, -2.5]
+            let floats: [Float] = [1.5, -2.5]
+        }
+
+        assertEncoderSucceeds(encoding: EncodableStruct())
+    }
+
     func testThatEncoderSucceedsWhenEncodingStringToURLDictionary() {
         let value = [
             "foo": URL(string: "https://swift.org")!,
