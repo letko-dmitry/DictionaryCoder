@@ -111,13 +111,39 @@ internal final class DictionaryComponentDecoder {
         from component: Any?,
         at codingPathNode: @autoclosure () -> CodingPathNode
     ) throws -> T {
-        let isBoolean = component is Bool || T.self is Bool.Type
+        let number = component as? NSNumber
 
-        guard !isBoolean, let number = component as? NSNumber, let value = number as? T else {
+        guard let number, !isBoolean(number), !(T.self is Bool.Type), let value = number as? T else {
             throw DecodingError.invalidComponent(component, of: T.self, at: codingPathNode().path)
         }
 
         return value
+    }
+
+    // Booleans are bridged to `NSNumber` too, so they are told apart by their Core Foundation type.
+    private func isBoolean(_ number: NSNumber) -> Bool {
+        CFGetTypeID(number) == CFBooleanGetTypeID()
+    }
+
+    // Decimals are decoded from numbers, as in `JSONDecoder`.
+    private func decodeDecimal(
+        from component: Any?,
+        at codingPathNode: @autoclosure () -> CodingPathNode
+    ) throws -> Decimal {
+        if let decimal = component as? Decimal {
+            return decimal
+        }
+
+        if let number = component as? NSNumber, !isBoolean(number) {
+            return number.decimalValue
+        }
+
+        // Decimals encoded in their own keyed representation, as earlier versions did, are still decoded.
+        if component is [String: Any] {
+            return try decodeNonPrimitiveValue(from: component, at: codingPathNode())
+        }
+
+        throw DecodingError.invalidComponent(component, of: Decimal.self, at: codingPathNode().path)
     }
 
     private func decodeNonPrimitiveValue<T: Decodable>(
@@ -429,6 +455,9 @@ internal final class DictionaryComponentDecoder {
 
         case ObjectIdentifier(URL.self):
             return try decodeURL(from: component, at: codingPathNode()) as! T
+
+        case ObjectIdentifier(Decimal.self):
+            return try decodeDecimal(from: component, at: codingPathNode()) as! T
 
         default:
             if let array = try decodePrimitiveArray(of: type, from: component, at: codingPathNode()) {

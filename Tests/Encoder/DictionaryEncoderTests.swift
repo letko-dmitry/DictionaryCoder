@@ -163,6 +163,12 @@ final class DictionaryEncoderTests: XCTestCase, DictionaryEncoderTesting {
         assertEncoderSucceeds(encoding: EncodableStruct())
     }
 
+    func testThatEncoderSucceedsWhenEncodingDecimals() {
+        let decimals = [Decimal(string: "1.5"), Decimal(string: "-2.25")].compactMap { $0 }
+
+        assertEncoderSucceeds(encoding: ["foo": decimals], expecting: ["foo": decimals])
+    }
+
     func testThatEncoderSucceedsWhenEncodingStringToURLDictionary() {
         let value = [
             "foo": URL(string: "https://swift.org")!,

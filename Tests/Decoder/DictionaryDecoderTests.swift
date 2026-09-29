@@ -189,6 +189,51 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
         assertDecoderSucceeds(decoding: DecodableStruct.self, from: dictionary)
     }
 
+    func testThatDecoderSucceedsWhenDecodingDecimals() {
+        struct DecodableStruct: Decodable, Equatable {
+            let foo: Decimal
+            let bar: Decimal
+            let baz: Decimal
+            let qux: [Decimal]
+        }
+
+        let dictionary: [String: Any] = [
+            "foo": Decimal(string: "1.5") as Any,
+            "bar": NSDecimalNumber(string: "-2.25"),
+            "baz": 0.1,
+            "qux": [3, NSNumber(value: 4.5)]
+        ]
+
+        let value = DecodableStruct(
+            foo: Decimal(string: "1.5")!,
+            bar: Decimal(string: "-2.25")!,
+            baz: Decimal(string: "0.1")!,
+            qux: [3, Decimal(string: "4.5")!]
+        )
+
+        assertDecoderSucceeds(decoding: value, from: dictionary)
+    }
+
+    func testThatDecoderSucceedsWhenDecodingDecimalsInKeyedRepresentation() throws {
+        struct KeyedDecimal: Encodable {
+            let value: Decimal
+
+            func encode(to encoder: Encoder) throws {
+                // The keyed representation of `Decimal` itself, which earlier versions of the encoder produced.
+                try value.encode(to: encoder)
+            }
+        }
+
+        let decimals = [
+            "foo": Decimal(string: "1.5")!,
+            "bar": Decimal(string: "-2.25")!
+        ]
+
+        let dictionary = try DictionaryEncoder().encode(decimals.mapValues(KeyedDecimal.init))
+
+        assertDecoderSucceeds(decoding: decimals, from: dictionary)
+    }
+
     func testThatDecoderSucceedsWhenDecodingStringToStringDictionary() {
         let dictionary = [
             "foo": "qwe",
@@ -744,6 +789,20 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
         assertDecoderFails(decoding: [String: Int].self, from: dictionary) { error in
             switch error {
             case let DecodingError.typeMismatch(type, _) where type is Int.Type:
+                return true
+
+            default:
+                return false
+            }
+        }
+    }
+
+    func testThatDecoderFailsWhenDecodingDecimalFromBool() {
+        let dictionary = ["foobar": true]
+
+        assertDecoderFails(decoding: [String: Decimal].self, from: dictionary) { error in
+            switch error {
+            case let DecodingError.typeMismatch(type, _) where type is Decimal.Type:
                 return true
 
             default:

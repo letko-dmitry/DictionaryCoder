@@ -282,6 +282,10 @@ internal final class DictionaryComponentEncoder {
         case ObjectIdentifier(URL.self):
             return try encodeURL(value as! URL, at: codingPathNode())
 
+        // Decimals are kept as numbers, as in `JSONEncoder`, rather than encoded in their own keyed representation.
+        case ObjectIdentifier(Decimal.self):
+            return encodePrimitiveValue(value, at: codingPathNode())
+
         default:
             return try encodeNonPrimitiveValue(value, at: codingPathNode())
         }
