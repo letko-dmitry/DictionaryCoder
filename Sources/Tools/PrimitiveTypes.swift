@@ -1,5 +1,3 @@
-import Foundation
-
 internal enum PrimitiveTypes {
 
     // MARK: - Type Methods

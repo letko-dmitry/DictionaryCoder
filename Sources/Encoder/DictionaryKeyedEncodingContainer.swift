@@ -1,5 +1,3 @@
-import Foundation
-
 internal struct DictionaryKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingContainerProtocol {
 
     // MARK: - Instance Properties

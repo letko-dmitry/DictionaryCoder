@@ -1,5 +1,3 @@
-import Foundation
-
 internal enum DictionaryComponent {
 
     // MARK: - Enumeration Cases

@@ -1,5 +1,3 @@
-import Foundation
-
 /// A coding path stored as a linked list, so that a nested container extends the path of its parent
 /// in constant time, and the array of keys is built only when it is needed.
 internal indirect enum CodingPathNode {
