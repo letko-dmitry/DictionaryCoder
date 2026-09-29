@@ -29,6 +29,79 @@ internal final class DictionaryComponentDecoder {
         return value
     }
 
+    // Arrays of primitive values are decoded in place as well,
+    // bypassing `Array.init(from:)` that goes through an unkeyed container for every element.
+    @inline(never)
+    private func decodePrimitiveArray(
+        of type: Any.Type,
+        from component: Any?,
+        at codingPathNode: @autoclosure () -> CodingPathNode
+    ) throws -> Any? {
+        let identifiers = PrimitiveArrayType.identifiers
+
+        switch ObjectIdentifier(type) {
+        case identifiers.string:
+            return try decodeArray(of: String.self, from: component, at: codingPathNode())
+
+        case identifiers.bool:
+            return try decodeArray(of: Bool.self, from: component, at: codingPathNode())
+
+        case identifiers.int:
+            return try decodeArray(of: Int.self, from: component, at: codingPathNode())
+
+        case identifiers.int8:
+            return try decodeArray(of: Int8.self, from: component, at: codingPathNode())
+
+        case identifiers.int16:
+            return try decodeArray(of: Int16.self, from: component, at: codingPathNode())
+
+        case identifiers.int32:
+            return try decodeArray(of: Int32.self, from: component, at: codingPathNode())
+
+        case identifiers.int64:
+            return try decodeArray(of: Int64.self, from: component, at: codingPathNode())
+
+        case identifiers.uInt:
+            return try decodeArray(of: UInt.self, from: component, at: codingPathNode())
+
+        case identifiers.uInt8:
+            return try decodeArray(of: UInt8.self, from: component, at: codingPathNode())
+
+        case identifiers.uInt16:
+            return try decodeArray(of: UInt16.self, from: component, at: codingPathNode())
+
+        case identifiers.uInt32:
+            return try decodeArray(of: UInt32.self, from: component, at: codingPathNode())
+
+        case identifiers.uInt64:
+            return try decodeArray(of: UInt64.self, from: component, at: codingPathNode())
+
+        case identifiers.double:
+            return try decodeArray(of: Double.self, from: component, at: codingPathNode())
+
+        case identifiers.float:
+            return try decodeArray(of: Float.self, from: component, at: codingPathNode())
+
+        default:
+            return nil
+        }
+    }
+
+    // Returns `nil` for a component that is not an array, leaving the error to the generic decoding.
+    private func decodeArray<Element: Decodable>(
+        of type: Element.Type,
+        from component: Any?,
+        at codingPathNode: @autoclosure () -> CodingPathNode
+    ) throws -> [Element]? {
+        guard let components = component as? [Any] else {
+            return nil
+        }
+
+        return try components.indices.map { index in
+            try decodeComponentValue(of: type, from: components[index], at: codingPathNode().appending(index: index))
+        }
+    }
+
     private func decodeNonPrimitiveValue<T: Decodable>(
         of type: T.Type = T.self,
         from component: consuming Any?,
@@ -344,9 +417,38 @@ internal final class DictionaryComponentDecoder {
             return try decodeURL(from: component, at: codingPathNode()) as! T
 
         default:
+            if let array = try decodePrimitiveArray(of: type, from: component, at: codingPathNode()) {
+                return array as! T
+            }
+
             return try decodeNonPrimitiveValue(from: component, at: codingPathNode())
         }
     }
+}
+
+// Identifiers of generic types are cached, as looking up their metadata on every call is costly.
+private struct PrimitiveArrayType {
+
+    // MARK: - Type Properties
+
+    fileprivate static let identifiers = Self()
+
+    // MARK: - Instance Properties
+
+    fileprivate let string = ObjectIdentifier([String].self)
+    fileprivate let bool = ObjectIdentifier([Bool].self)
+    fileprivate let int = ObjectIdentifier([Int].self)
+    fileprivate let int8 = ObjectIdentifier([Int8].self)
+    fileprivate let int16 = ObjectIdentifier([Int16].self)
+    fileprivate let int32 = ObjectIdentifier([Int32].self)
+    fileprivate let int64 = ObjectIdentifier([Int64].self)
+    fileprivate let uInt = ObjectIdentifier([UInt].self)
+    fileprivate let uInt8 = ObjectIdentifier([UInt8].self)
+    fileprivate let uInt16 = ObjectIdentifier([UInt16].self)
+    fileprivate let uInt32 = ObjectIdentifier([UInt32].self)
+    fileprivate let uInt64 = ObjectIdentifier([UInt64].self)
+    fileprivate let double = ObjectIdentifier([Double].self)
+    fileprivate let float = ObjectIdentifier([Float].self)
 }
 
 extension ISO8601DateFormatter {

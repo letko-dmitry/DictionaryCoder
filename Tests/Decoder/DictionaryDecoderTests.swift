@@ -133,6 +133,44 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
         assertDecoderSucceeds(decoding: [String: Float].self, from: dictionary)
     }
 
+    func testThatDecoderSucceedsWhenDecodingArraysOfPrimitives() {
+        struct DecodableStruct: Decodable, Equatable {
+            let bools: [Bool]
+            let strings: [String]
+            let ints: [Int]
+            let int8s: [Int8]
+            let int16s: [Int16]
+            let int32s: [Int32]
+            let int64s: [Int64]
+            let uints: [UInt]
+            let uint8s: [UInt8]
+            let uint16s: [UInt16]
+            let uint32s: [UInt32]
+            let uint64s: [UInt64]
+            let doubles: [Double]
+            let floats: [Float]
+        }
+
+        let dictionary: [String: Any] = [
+            "bools": [true, false],
+            "strings": ["foo", "bar"],
+            "ints": [1, -2],
+            "int8s": [1, -2] as [Int8],
+            "int16s": [1, -2] as [Int16],
+            "int32s": [1, -2] as [Int32],
+            "int64s": [1, -2] as [Int64],
+            "uints": [1, 2] as [UInt],
+            "uint8s": [1, 2] as [UInt8],
+            "uint16s": [1, 2] as [UInt16],
+            "uint32s": [1, 2] as [UInt32],
+            "uint64s": [1, 2] as [UInt64],
+            "doubles": [1.5, -2.5],
+            "floats": [1.5, -2.5] as [Float]
+        ]
+
+        assertDecoderSucceeds(decoding: DecodableStruct.self, from: dictionary)
+    }
+
     func testThatDecoderSucceedsWhenDecodingStringToStringDictionary() {
         let dictionary = [
             "foo": "qwe",
@@ -841,6 +879,34 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
             switch error {
             case let DecodingError.typeMismatch(type, context) where type is Int.Type:
                 return context.codingPath.map(\.stringValue) == ["foo", "1"]
+
+            default:
+                return false
+            }
+        }
+    }
+
+    func testThatDecoderFailsWhenDecodingInvalidElementOfPrimitiveArray() {
+        let dictionary: [String: Any] = ["foo": [123, "456"] as [Any]]
+
+        assertDecoderFails(decoding: [String: [Int]].self, from: dictionary) { error in
+            switch error {
+            case let DecodingError.typeMismatch(type, context) where type is Int.Type:
+                return context.codingPath.map(\.stringValue) == ["foo", "1"]
+
+            default:
+                return false
+            }
+        }
+    }
+
+    func testThatDecoderFailsWhenDecodingPrimitiveArrayFromNonArray() {
+        let dictionary = ["foobar": 123]
+
+        assertDecoderFails(decoding: [String: [Int]].self, from: dictionary) { error in
+            switch error {
+            case let DecodingError.typeMismatch(type, context) where type is [Any].Type:
+                return context.codingPath.map(\.stringValue) == ["foobar"]
 
             default:
                 return false
