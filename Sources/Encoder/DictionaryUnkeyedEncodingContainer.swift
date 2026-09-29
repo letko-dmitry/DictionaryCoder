@@ -32,6 +32,13 @@ internal final class DictionaryUnkeyedEncodingContainer:
 
         @inline(__always)
         private mutating func append(_ element: consuming Any) {
+            // Most unkeyed containers of compact encodings hold a couple of elements, so room for two is reserved
+            // up front. It saves a reallocation for every container of two and more elements, which grow as usual,
+            // and costs memory only for containers of one element.
+            if values.isEmpty {
+                values.reserveCapacity(2)
+            }
+
             values.append(element)
         }
 
