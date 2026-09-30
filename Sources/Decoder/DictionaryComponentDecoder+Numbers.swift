@@ -48,18 +48,29 @@ extension DictionaryComponentDecoder {
         throw DecodingError.invalidComponent(component, of: Decimal.self, at: position())
     }
 
-    // `NSNumber` does not bridge 128-bit integers, so other integers are converted exactly.
     @available(watchOS 11.0, *)
     internal func decodeWideInteger<T: FixedWidthInteger & Decodable>(
         _ type: T.Type,
         from component: Any?,
         at position: @autoclosure () -> CodingPosition
     ) throws -> T {
+        guard let value = wideInteger(of: type, from: component) else {
+            throw DecodingError.invalidComponent(component, of: T.self, at: position())
+        }
+
+        return value
+    }
+
+    // `NSNumber` does not bridge 128-bit integers, so other integers are converted exactly.
+    // The conversion takes no position, so that it is not copied for every caller along with its closure.
+    @available(watchOS 11.0, *)
+    @inline(never)
+    private func wideInteger<T: FixedWidthInteger>(of type: T.Type, from component: Any?) -> T? {
         if let value = component as? T {
             return value
         }
 
-        let value: T? = switch component {
+        return switch component {
         case let integer as any BinaryInteger:
             T(exactly: integer)
 
@@ -69,12 +80,6 @@ extension DictionaryComponentDecoder {
         default:
             nil
         }
-
-        guard let value else {
-            throw DecodingError.invalidComponent(component, of: T.self, at: position())
-        }
-
-        return value
     }
 }
 
