@@ -111,12 +111,7 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
     @inline(always)
     private func peekNextComponent() throws -> Any? {
         guard currentIndex < components.count else {
-            let errorContext = DecodingError.Context(
-                codingPath: currentPosition.path,
-                debugDescription: "Unkeyed container is at end."
-            )
-
-            throw DecodingError.valueNotFound(Any.self, errorContext)
+            throw DecodingError.containerAtEnd(at: currentPosition)
         }
 
         return components[currentIndex]
@@ -234,5 +229,19 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
 
     internal func superDecoder() throws -> Decoder {
         try advancing(superDecoder(for: peekNextComponent()))
+    }
+}
+
+// Errors are made out of line and returned boxed, as an error or its context in a function,
+// both of a resilient layout, would make the compiler reserve stack space for them on every call.
+extension DecodingError {
+
+    // MARK: - Type Methods
+
+    @inline(never)
+    fileprivate static func containerAtEnd(at position: CodingPosition) -> any Error {
+        let context = Context(codingPath: position.path, debugDescription: "Unkeyed container is at end.")
+
+        return Self.valueNotFound(Any.self, context)
     }
 }

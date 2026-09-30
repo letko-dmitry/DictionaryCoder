@@ -126,12 +126,7 @@ internal final class DictionaryComponentDecoder {
         let number: T = try decodePrimitiveValue(from: component, at: position())
 
         guard number.isFinite else {
-            let errorContext = DecodingError.Context(
-                codingPath: position().path,
-                debugDescription: "Parsed dictionary number \(number) does not fit in \(T.self)."
-            )
-
-            throw DecodingError.dataCorrupted(errorContext)
+            throw DecodingError.nonConformingNumber(number, at: position())
         }
 
         return number
@@ -155,12 +150,10 @@ internal final class DictionaryComponentDecoder {
             let formattedDate = try decodePrimitiveValue(of: String.self, from: component, at: position())
 
             guard let date = try? Date.ISO8601FormatStyle.internetDateTime.parse(formattedDate) else {
-                let errorContext = DecodingError.Context(
-                    codingPath: position().path,
+                throw DecodingError.dataCorrupted(
+                    at: position(),
                     debugDescription: "Expected date string to be ISO8601-formatted."
                 )
-
-                throw DecodingError.dataCorrupted(errorContext)
             }
 
             return date
@@ -169,12 +162,10 @@ internal final class DictionaryComponentDecoder {
             let formattedDate = try decodePrimitiveValue(of: String.self, from: component, at: position())
 
             guard let date = dateFormatter.date(from: formattedDate) else {
-                let errorContext = DecodingError.Context(
-                    codingPath: position().path,
+                throw DecodingError.dataCorrupted(
+                    at: position(),
                     debugDescription: "Date string does not match format expected by formatter."
                 )
-
-                throw DecodingError.dataCorrupted(errorContext)
             }
 
             return date
@@ -196,12 +187,10 @@ internal final class DictionaryComponentDecoder {
             let base64EncodedString = try decodePrimitiveValue(of: String.self, from: component, at: position())
 
             guard let data = Data(base64Encoded: base64EncodedString) else {
-                let errorContext = DecodingError.Context(
-                    codingPath: position().path,
+                throw DecodingError.dataCorrupted(
+                    at: position(),
                     debugDescription: "Encountered Data is not valid Base64."
                 )
-
-                throw DecodingError.dataCorrupted(errorContext)
             }
 
             return data
@@ -220,12 +209,7 @@ internal final class DictionaryComponentDecoder {
         }
 
         guard let url = URL(string: try decodePrimitiveValue(from: component, at: position())) else {
-            let errorContext = DecodingError.Context(
-                codingPath: position().path,
-                debugDescription: "String is not valid URL."
-            )
-
-            throw DecodingError.dataCorrupted(errorContext)
+            throw DecodingError.dataCorrupted(at: position(), debugDescription: "String is not valid URL.")
         }
 
         return url
@@ -321,5 +305,25 @@ internal final class DictionaryComponentDecoder {
 
             return try decodeNonPrimitiveValue(from: component, at: position())
         }
+    }
+}
+
+// Errors are made out of line and returned boxed, as an error or its context in a function,
+// both of a resilient layout, would make the compiler reserve stack space for them on every call.
+extension DecodingError {
+
+    // MARK: - Type Methods
+
+    @inline(never)
+    fileprivate static func dataCorrupted(at position: CodingPosition, debugDescription: String) -> any Error {
+        Self.dataCorrupted(Context(codingPath: position.path, debugDescription: debugDescription))
+    }
+
+    @inline(never)
+    fileprivate static func nonConformingNumber<T: FloatingPoint>(
+        _ number: T,
+        at position: CodingPosition
+    ) -> any Error {
+        dataCorrupted(at: position, debugDescription: "Parsed dictionary number \(number) does not fit in \(T.self).")
     }
 }

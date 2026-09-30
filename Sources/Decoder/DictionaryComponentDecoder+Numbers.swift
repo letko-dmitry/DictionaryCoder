@@ -16,7 +16,7 @@ extension DictionaryComponentDecoder {
         let number = component as? NSNumber
 
         guard let number, !isBoolean(number), !(T.self is Bool.Type), let value = number as? T else {
-            throw DecodingError.invalidComponent(component, of: T.self, at: position().path)
+            throw DecodingError.invalidComponent(component, of: T.self, at: position())
         }
 
         return value
@@ -45,7 +45,7 @@ extension DictionaryComponentDecoder {
             return try decodeNonPrimitiveValue(from: component, at: position())
         }
 
-        throw DecodingError.invalidComponent(component, of: Decimal.self, at: position().path)
+        throw DecodingError.invalidComponent(component, of: Decimal.self, at: position())
     }
 
     // `NSNumber` does not bridge 128-bit integers, so other integers are converted exactly.
@@ -71,29 +71,32 @@ extension DictionaryComponentDecoder {
         }
 
         guard let value else {
-            throw DecodingError.invalidComponent(component, of: T.self, at: position().path)
+            throw DecodingError.invalidComponent(component, of: T.self, at: position())
         }
 
         return value
     }
 }
 
+// Errors are made out of line and returned boxed, as an error or its context in a function,
+// both of a resilient layout, would make the compiler reserve stack space for them on every call.
 extension DecodingError {
 
     // MARK: - Type Methods
 
+    @inline(never)
     fileprivate static func invalidComponent(
         _ component: Any?,
         of expectedType: Any.Type,
-        at codingPath: [CodingKey]
-    ) -> DecodingError {
+        at position: CodingPosition
+    ) -> any Error {
         let componentDescription = component.map { "\(type(of: $0))" } ?? "nil"
 
         let context = Context(
-            codingPath: codingPath,
+            codingPath: position.path,
             debugDescription: "Expected to decode \(expectedType) but found \(componentDescription) instead."
         )
 
-        return .typeMismatch(expectedType, context)
+        return Self.typeMismatch(expectedType, context)
     }
 }

@@ -206,7 +206,7 @@ internal final class DictionaryComponentEncoder {
             return nan
 
         case .throw:
-            throw EncodingError.invalidFloatingPointValue(value, at: position().path)
+            throw EncodingError.invalidFloatingPointValue(value, at: position())
         }
     }
 
@@ -282,14 +282,17 @@ extension Date.ISO8601FormatStyle {
     internal static let internetDateTime = Self()
 }
 
+// Errors are made out of line and returned boxed, as an error or its context in a function,
+// both of a resilient layout, would make the compiler reserve stack space for them on every call.
 extension EncodingError {
 
     // MARK: - Type Methods
 
+    @inline(never)
     fileprivate static func invalidFloatingPointValue<T: FloatingPoint>(
         _ value: T,
-        at codingPath: [CodingKey]
-    ) -> EncodingError {
+        at position: CodingPosition
+    ) -> any Error {
         let valueDescription: String
 
         switch value {
@@ -308,6 +311,6 @@ extension EncodingError {
             Use DictionaryNonConformingFloatEncodingStrategy.convertToString to specify how the value should be encoded.
             """
 
-        return .invalidValue(value, Context(codingPath: codingPath, debugDescription: debugDescription))
+        return Self.invalidValue(value, Context(codingPath: position.path, debugDescription: debugDescription))
     }
 }

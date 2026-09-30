@@ -68,12 +68,7 @@ internal final class DictionarySingleValueEncodingContainer:
     @inline(always)
     private func collect(_ component: consuming Any?, of value: Any?) throws {
         guard Self.store(.value(component), in: &self.component) else {
-            let errorContext = EncodingError.Context(
-                codingPath: codingPath,
-                debugDescription: "Single value container already has encoded value"
-            )
-
-            throw EncodingError.invalidValue(value as Any, errorContext)
+            throw EncodingError.valueAlreadyEncoded(value, at: position)
         }
     }
 
@@ -178,5 +173,22 @@ internal final class DictionarySingleValueEncodingContainer:
     // The component is taken rather than copied, as a value is resolved once, when it is encoded.
     internal func resolveValue() -> Any? {
         component.take()?.resolveValue()
+    }
+}
+
+// Errors are made out of line and returned boxed, as an error or its context in a function,
+// both of a resilient layout, would make the compiler reserve stack space for them on every call.
+extension EncodingError {
+
+    // MARK: - Type Methods
+
+    @inline(never)
+    fileprivate static func valueAlreadyEncoded(_ value: Any?, at position: CodingPosition) -> any Error {
+        let context = Context(
+            codingPath: position.path,
+            debugDescription: "Single value container already has encoded value"
+        )
+
+        return Self.invalidValue(value as Any, context)
     }
 }

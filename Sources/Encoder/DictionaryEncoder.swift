@@ -77,12 +77,7 @@ public final class DictionaryEncoder: Sendable {
         try encoding(encoder)
 
         guard let dictionary = encoder.resolveValue() as? [String: Sendable] else {
-            let errorContext = EncodingError.Context(
-                codingPath: [],
-                debugDescription: "Root component cannot be encoded in Dictionary"
-            )
-
-            throw EncodingError.invalidValue(value, errorContext)
+            throw EncodingError.invalidRootValue(value)
         }
 
         return dictionary
@@ -101,5 +96,19 @@ public final class DictionaryEncoder: Sendable {
         try encodeRootValue(value) { encoder in
             try value.encode(to: encoder, configuration: configuration)
         }
+    }
+}
+
+// Errors are made out of line and returned boxed, as an error or its context in a function,
+// both of a resilient layout, would make the compiler reserve stack space for them on every call.
+extension EncodingError {
+
+    // MARK: - Type Methods
+
+    @inline(never)
+    fileprivate static func invalidRootValue(_ value: Any) -> any Error {
+        let context = Context(codingPath: [], debugDescription: "Root component cannot be encoded in Dictionary")
+
+        return Self.invalidValue(value, context)
     }
 }

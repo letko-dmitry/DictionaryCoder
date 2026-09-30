@@ -132,14 +132,17 @@ internal final class DictionarySingleValueDecodingContainer:
     }
 }
 
+// Errors are made out of line and returned boxed, as an error or its context in a function,
+// both of a resilient layout, would make the compiler reserve stack space for them on every call.
 extension DecodingError {
 
     // MARK: - Type Methods
 
+    @inline(never)
     fileprivate static func keyedContainerTypeMismatch(
         at codingPath: [CodingKey],
         component: Any?
-    ) -> Self {
+    ) -> any Error {
         let debugDescription: String
 
         switch component {
@@ -150,13 +153,16 @@ extension DecodingError {
             debugDescription = "Cannot get keyed decoding container -- found null value instead."
         }
 
-        return .typeMismatch([String: Any].self, Context(codingPath: codingPath, debugDescription: debugDescription))
+        let context = Context(codingPath: codingPath, debugDescription: debugDescription)
+
+        return Self.typeMismatch([String: Any].self, context)
     }
 
+    @inline(never)
     fileprivate static func unkeyedContainerTypeMismatch(
         at codingPath: [CodingKey],
         component: Any?
-    ) -> Self {
+    ) -> any Error {
         let debugDescription: String
 
         switch component {
@@ -167,6 +173,8 @@ extension DecodingError {
             debugDescription = "Cannot get unkeyed decoding container -- found null value instead."
         }
 
-        return .typeMismatch([Any].self, Context(codingPath: codingPath, debugDescription: debugDescription))
+        let context = Context(codingPath: codingPath, debugDescription: debugDescription)
+
+        return Self.typeMismatch([Any].self, context)
     }
 }
