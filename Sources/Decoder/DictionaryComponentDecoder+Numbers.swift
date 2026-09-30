@@ -9,7 +9,6 @@ extension DictionaryComponentDecoder {
     // Unlike `NSNumber`, booleans are not converted to or from numbers here, as in `JSONDecoder`.
     @inline(never)
     internal func decodeConvertedNumber<T: Decodable>(
-        of type: T.Type = T.self,
         from component: Any?,
         at position: @autoclosure () -> CodingPosition
     ) throws -> T {
