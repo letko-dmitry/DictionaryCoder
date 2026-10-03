@@ -920,6 +920,41 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
         assertDecoderSucceeds(decoding: DecodableSubclass.self, from: dictionary)
     }
 
+    func testThatDecoderSucceedsWhenDecodingValuesThatKeepTheirDecoders() throws {
+        final class KeptDecoders: @unchecked Sendable {
+            var decoders: [Decoder] = []
+            var previousValues: [Int] = []
+        }
+
+        struct DecodableStruct: Decodable, Equatable {
+            let value: Int
+
+            init(value: Int) {
+                self.value = value
+            }
+
+            init(from decoder: Decoder) throws {
+                let keptDecoders = try XCTUnwrap(decoder.userInfo[.keptDecoders] as? KeptDecoders)
+
+                // Reads through the decoder of the previous value, which must not decode this one.
+                if let previousDecoder = keptDecoders.decoders.last {
+                    keptDecoders.previousValues.append(try previousDecoder.singleValueContainer().decode(Int.self))
+                }
+
+                value = try decoder.singleValueContainer().decode(Int.self)
+
+                keptDecoders.decoders.append(decoder)
+            }
+        }
+
+        let keptDecoders = KeptDecoders()
+        let decoder = DictionaryDecoder(userInfo: [.keptDecoders: keptDecoders])
+        let values = try decoder.decode([String: [DecodableStruct]].self, from: ["foo": [0, 1, 2]])
+
+        XCTAssertEqual(values, ["foo": (0..<3).map(DecodableStruct.init(value:))])
+        XCTAssertEqual(keptDecoders.previousValues, [0, 1])
+    }
+
     // MARK: -
 
     func testThatDecoderFailsWhenDecodingArray() {
@@ -1293,4 +1328,11 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
 
         decoder = DictionaryDecoder()
     }
+}
+
+extension CodingUserInfoKey {
+
+    // MARK: - Type Properties
+
+    fileprivate static let keptDecoders = Self(rawValue: "keptDecoders")!
 }

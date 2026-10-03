@@ -1,6 +1,6 @@
 import Foundation
 
-extension DictionaryComponentDecoder {
+extension DictionaryValueDecoder {
 
     // MARK: - Instance Methods
 
@@ -27,10 +27,7 @@ extension DictionaryComponentDecoder {
     }
 
     // Decimals are decoded from numbers, as in `JSONDecoder`.
-    internal func decodeDecimal(
-        from component: Any?,
-        at position: @autoclosure () -> CodingPosition
-    ) throws -> Decimal {
+    internal func decodeDecimal(from component: Any?, at key: @autoclosure () -> CodingPathKey) throws -> Decimal {
         if let decimal = component as? Decimal {
             return decimal
         }
@@ -41,10 +38,12 @@ extension DictionaryComponentDecoder {
 
         // Decimals encoded in their own keyed representation, as earlier versions did, are still decoded.
         if component is [String: Any] {
-            return try decodeNonPrimitiveValue(from: component, at: position())
+            return try decodeNestedValue(from: component, at: key()) { decoder in
+                try Decimal(from: decoder)
+            }
         }
 
-        throw DecodingError.invalidComponent(component, of: Decimal.self, at: position())
+        throw DecodingError.invalidComponent(component, of: Decimal.self, at: position(at: key()))
     }
 
     @available(watchOS 11.0, *)
