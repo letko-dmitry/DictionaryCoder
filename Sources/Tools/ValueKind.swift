@@ -1,3 +1,25 @@
+import Foundation
+
+/// Reads a value of a generic type as the type that it is known to be, without the copy that a cast makes.
+@inline(always)
+internal func unsafeCast<T, Value>(_ value: borrowing T, to type: Value.Type) -> Value {
+    withUnsafePointer(to: value) { pointer in
+        unsafe UnsafeRawPointer(pointer).assumingMemoryBound(to: Value.self).pointee
+    }
+}
+
+/// Reads the value of an existential as the type that it is known to be, without the copy and the lookup
+/// that a cast makes.
+@inline(always)
+internal func unsafeCast<Value>(contentsOf existential: Any, to type: Value.Type) -> Value {
+    // Passing the existential to a generic parameter opens it, so the value itself is read.
+    func read<T>(_ value: T) -> Value {
+        unsafeCast(value, to: Value.self)
+    }
+
+    return read(existential)
+}
+
 internal struct PrimitiveArrayType {
 
     // MARK: - Type Properties
@@ -100,5 +122,106 @@ internal enum PrimitiveTypes {
             || type == UInt16.self
             || type == UInt32.self
             || type == UInt64.self
+    }
+}
+
+/// How dictionaries hold the values of a type other than the primitive ones, which are checked for in place.
+internal enum ValueKind {
+
+    // MARK: - Nested Types
+
+    // Identifiers of types of other modules and of generic types are cached,
+    // as looking up their metadata on every call is costly.
+    private struct Identifiers {
+
+        // MARK: - Type Properties
+
+        static let shared = Self()
+
+        // MARK: - Instance Properties
+
+        let date = ObjectIdentifier(Date.self)
+        let data = ObjectIdentifier(Data.self)
+        let url = ObjectIdentifier(URL.self)
+        let decimal = ObjectIdentifier(Decimal.self)
+        let int128: ObjectIdentifier?
+        let uInt128: ObjectIdentifier?
+
+        // MARK: - Initializers
+
+        init() {
+            if #available(watchOS 11.0, *) {
+                int128 = ObjectIdentifier(Int128.self)
+                uInt128 = ObjectIdentifier(UInt128.self)
+            } else {
+                int128 = nil
+                uInt128 = nil
+            }
+        }
+    }
+
+    // MARK: - Enumeration Cases
+
+    /// Values that are coded in containers of their own.
+    case nested
+
+    case double
+    case float
+    case date
+    case data
+    case url
+    case decimal
+    case int128
+    case uInt128
+
+    /// Arrays of primitive values.
+    case primitiveArray
+
+    /// Dictionaries of primitive values keyed by strings.
+    case primitiveDictionary
+
+    // MARK: - Initializers
+
+    // Out of line and not generic, as comparing a type with all of these inline makes coding values of every type
+    // slower, through the lookups of the metadata and the stack space that the comparisons take.
+    @inline(never)
+    internal init(of type: Any.Type) {
+        let identifiers = Identifiers.shared
+        let typeIdentifier = ObjectIdentifier(type)
+
+        switch typeIdentifier {
+        case ObjectIdentifier(Double.self):
+            self = .double
+
+        case ObjectIdentifier(Float.self):
+            self = .float
+
+        case identifiers.date:
+            self = .date
+
+        case identifiers.data:
+            self = .data
+
+        case identifiers.url:
+            self = .url
+
+        case identifiers.decimal:
+            self = .decimal
+
+        case identifiers.int128:
+            self = .int128
+
+        case identifiers.uInt128:
+            self = .uInt128
+
+        default:
+            if PrimitiveArrayType.contains(type) {
+                self = .primitiveArray
+            } else if PrimitiveDictionaryType.contains(type) {
+                self = .primitiveDictionary
+            } else {
+                self = .nested
+            }
+        }
     }
 }

@@ -88,7 +88,7 @@ internal final class DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContaine
 
     @inline(always)
     internal var currentPosition: CodingPosition {
-        CodingPosition(container: decoder, key: .index(currentIndex))
+        CodingPosition(node: decoder, key: .index(currentIndex))
     }
 
     internal var count: Int? {

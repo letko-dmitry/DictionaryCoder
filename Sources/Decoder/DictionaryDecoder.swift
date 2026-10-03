@@ -62,7 +62,8 @@ public final class DictionaryDecoder: Sendable {
         return DictionarySingleValueDecodingContainer(
             component: dictionary,
             context: DictionaryComponentDecoder(options: options, userInfo: userInfo),
-            position: .root
+            parent: nil,
+            key: .empty
         )
     }
 

@@ -543,6 +543,35 @@ final class DictionaryEncoderTests: XCTestCase, DictionaryEncoderTesting {
         assertEncoderSucceeds(encoding: EncodableSubclass())
     }
 
+    func testThatEncoderSucceedsWhenEncodingValuesThatKeepTheirContainers() throws {
+        final class KeptContainers {
+            var containers: [UnkeyedEncodingContainer] = []
+        }
+
+        struct EncodableStruct: Encodable {
+            let value: Int
+            let keptContainers: KeptContainers
+
+            func encode(to encoder: Encoder) throws {
+                // Writes into the container of the previous value, which must not be the container of this one.
+                if let index = keptContainers.containers.indices.last {
+                    try keptContainers.containers[index].encode(-1)
+                }
+
+                var container = encoder.unkeyedContainer()
+
+                try container.encode(value)
+
+                keptContainers.containers.append(container)
+            }
+        }
+
+        let keptContainers = KeptContainers()
+        let values = (0..<3).map { EncodableStruct(value: $0, keptContainers: keptContainers) }
+
+        assertEncoderSucceeds(encoding: ["foo": values], expecting: ["foo": [[0], [1], [2]]])
+    }
+
     // MARK: -
 
     func testThatEncoderFailsWhenEncodingArray() {

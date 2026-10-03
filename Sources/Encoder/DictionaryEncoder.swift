@@ -6,8 +6,8 @@ public final class DictionaryEncoder: Sendable {
 
     // MARK: - Instance Properties
 
+    // The options and the user info are kept under one lock, which takes one allocation and one locking per call.
     private let optionsLock: OSAllocatedUnfairLock<DictionaryEncodingOptions>
-    private let userInfoLock: OSAllocatedUnfairLock<[CodingUserInfoKey: Sendable]>
 
     public var dateEncodingStrategy: DictionaryDateEncodingStrategy {
         get { optionsLock.withLock(\.dateEncodingStrategy) }
@@ -35,8 +35,8 @@ public final class DictionaryEncoder: Sendable {
     }
 
     public var userInfo: [CodingUserInfoKey: Sendable] {
-        get { userInfoLock.withLock(\.self) }
-        set { userInfoLock.withLock { $0 = newValue } }
+        get { optionsLock.withLock(\.userInfo) }
+        set { optionsLock.withLock { $0.userInfo = newValue } }
     }
 
     // MARK: - Initializers
@@ -54,11 +54,11 @@ public final class DictionaryEncoder: Sendable {
             dataEncodingStrategy: dataEncodingStrategy,
             nonConformingFloatEncodingStrategy: nonConformingFloatEncodingStrategy,
             nilEncodingStrategy: nilEncodingStrategy,
-            keyEncodingStrategy: keyEncodingStrategy
+            keyEncodingStrategy: keyEncodingStrategy,
+            userInfo: userInfo
         )
 
         self.optionsLock = OSAllocatedUnfairLock(initialState: options)
-        self.userInfoLock = OSAllocatedUnfairLock(initialState: userInfo)
     }
 
     // MARK: - Instance Methods
@@ -69,14 +69,21 @@ public final class DictionaryEncoder: Sendable {
     ) throws -> [String: Sendable] {
         let options = optionsLock.withLock(\.self)
 
-        let encoder = DictionarySingleValueEncodingContainer(
-            context: DictionaryComponentEncoder(options: options, userInfo: userInfo),
-            position: .root
+        let encoder = DictionaryValueEncoder(
+            context: DictionaryEncodingContext(options: options),
+            parent: nil,
+            key: .empty
         )
 
-        try encoding(encoder)
+        do {
+            try encoding(encoder)
+        } catch {
+            // The encoders of nested containers refer back to the encoders of their containers until taken.
+            encoder.discard()
+            throw error
+        }
 
-        guard let dictionary = encoder.resolveValue() as? [String: Sendable] else {
+        guard let dictionary = encoder.takeValue() as? [String: Sendable] else {
             throw EncodingError.invalidRootValue(value)
         }
 

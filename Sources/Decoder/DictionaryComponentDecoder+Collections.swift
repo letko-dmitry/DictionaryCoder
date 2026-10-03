@@ -95,7 +95,7 @@ extension DictionaryComponentDecoder {
             try decode(
                 type,
                 from: component(index),
-                at: CodingPosition(container: CodingPathNode(position: position()), key: .index(index))
+                at: CodingPathNode(parent: position().node, key: position().key).position(at: .index(index))
             )
         }
     }
@@ -176,7 +176,7 @@ extension DictionaryComponentDecoder {
             dictionary[key] = try decode(
                 type,
                 from: component,
-                at: CodingPosition(container: CodingPathNode(position: position()), key: .key(AnyCodingKey(key)))
+                at: CodingPathNode(parent: position().node, key: position().key).position(at: .key(AnyCodingKey(key)))
             )
         }
 

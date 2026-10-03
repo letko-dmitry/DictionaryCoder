@@ -137,7 +137,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
 
     @inline(always)
     private func position(of key: CodingKey) -> CodingPosition {
-        CodingPosition(container: decoder, key: .key(key))
+        CodingPosition(node: decoder, key: .key(key))
     }
 
     // Unlike the default implementation of `decodeIfPresent`, looks the key up once rather than in `contains`,

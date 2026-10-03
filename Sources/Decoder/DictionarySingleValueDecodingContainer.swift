@@ -20,17 +20,26 @@ internal final class DictionarySingleValueDecodingContainer:
         context.userInfo
     }
 
+    internal var position: CodingPosition {
+        CodingPosition(node: self, key: .empty)
+    }
+
     // MARK: - Initializers
 
     internal init(
         component: Any?,
         context: DictionaryComponentDecoder,
-        position: CodingPosition
+        parent: CodingPathNode?,
+        key: CodingPathKey
     ) {
         self.component = component
         self.context = context
 
-        super.init(position: position)
+        super.init(parent: parent, key: key)
+    }
+
+    internal convenience init(component: Any?, context: DictionaryComponentDecoder, position: CodingPosition) {
+        self.init(component: component, context: context, parent: position.node, key: position.key)
     }
 
     // MARK: - Instance Methods
