@@ -93,7 +93,7 @@ internal final class DictionaryValueEncoder: CodingPathNode, Encoder, SingleValu
     // MARK: - Instance Methods
 
     /// Makes the value encoded in a storage of the given kind, replacing whatever the value is encoded in.
-    @inline(__always)
+    @inline(always)
     private func setStorage(_ storage: Storage) {
         if state.storage != .none {
             discard()
@@ -104,7 +104,7 @@ internal final class DictionaryValueEncoder: CodingPathNode, Encoder, SingleValu
         state.storage = storage
     }
 
-    @inline(__always)
+    @inline(always)
     private func makeNestedEncoder(at key: CodingPathKey) -> DictionaryValueEncoder {
         guard let encoder = state.reusableEncoder.take() else {
             return DictionaryValueEncoder(context: context, parent: self, key: key)
@@ -116,7 +116,7 @@ internal final class DictionaryValueEncoder: CodingPathNode, Encoder, SingleValu
         return encoder
     }
 
-    @inline(__always)
+    @inline(always)
     private func keepForReuse(_ encoder: inout DictionaryValueEncoder) {
         // An encoder that anything else still refers to, such as a stored container, is left to it.
         guard isKnownUniquelyReferenced(&encoder) else {
@@ -129,7 +129,7 @@ internal final class DictionaryValueEncoder: CodingPathNode, Encoder, SingleValu
         state.reusableEncoder = encoder
     }
 
-    @inline(__always)
+    @inline(always)
     private func storeSingleValue<T>(_ value: @autoclosure () throws -> Any?, of originalValue: T) throws {
         guard state.storage == .none else {
             throw EncodingError.valueAlreadyEncoded(originalValue, at: self)
@@ -156,7 +156,7 @@ internal final class DictionaryValueEncoder: CodingPathNode, Encoder, SingleValu
         return takeStoredValue()
     }
 
-    @inline(__always)
+    @inline(always)
     private func takeStoredValue() -> Any? {
         let storage = state.storage
 
@@ -198,7 +198,7 @@ internal final class DictionaryValueEncoder: CodingPathNode, Encoder, SingleValu
     }
 
     /// Encodes a nested value with an encoder of its own, the one kept from the last nested value if there is one.
-    @inline(__always)
+    @inline(always)
     internal func encodeNestedValue(
         at key: CodingPathKey,
         encoding: (_ encoder: DictionaryValueEncoder) throws -> Void
@@ -248,7 +248,7 @@ internal final class DictionaryValueEncoder: CodingPathNode, Encoder, SingleValu
         return encoder
     }
 
-    @inline(__always)
+    @inline(always)
     internal func encodeKey<Key: CodingKey>(_ key: Key) -> String {
         switch context.options.keyEncodingStrategy {
         case .useDefaultKeys:

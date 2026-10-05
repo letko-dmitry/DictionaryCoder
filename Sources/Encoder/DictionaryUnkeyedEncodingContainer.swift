@@ -4,7 +4,7 @@ internal struct DictionaryUnkeyedEncodingStorage {
     // MARK: - Type Methods
 
     // `[Any]` cannot hold `nil` itself, so `nil` is kept as an element wrapped in `Any`.
-    @inline(__always)
+    @inline(always)
     private static func element(from value: consuming Any?) -> Any {
         switch consume value {
         case let value?:
@@ -28,7 +28,7 @@ internal struct DictionaryUnkeyedEncodingStorage {
 
     // MARK: - Instance Methods
 
-    @inline(__always)
+    @inline(always)
     internal mutating func append(_ value: consuming Any?) {
         // Most unkeyed containers of compact encodings hold a couple of elements, so room for two is reserved
         // up front. It saves a reallocation for every container of two and more elements, which grow as usual,
@@ -90,7 +90,7 @@ internal struct DictionaryUnkeyedEncodingContainer: UnkeyedEncodingContainer {
 
     // MARK: - Instance Methods
 
-    @inline(__always)
+    @inline(always)
     private func append(_ value: consuming Any?) {
         encoder.state.unkeyedValues.append(value)
     }

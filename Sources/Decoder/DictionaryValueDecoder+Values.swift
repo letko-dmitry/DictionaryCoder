@@ -4,7 +4,7 @@ extension DictionaryValueDecoder {
 
     // MARK: - Instance Methods
 
-    @inline(__always)
+    @inline(always)
     private func decodePrimitiveValue<T: Decodable>(
         of type: T.Type = T.self,
         from component: Any?,
@@ -33,7 +33,7 @@ extension DictionaryValueDecoder {
 
     // Bridging a Foundation object through `as? T` looks the bridging up on every call,
     // while bridging one known to be of the class that `T` bridges from calls the same conversion directly.
-    @inline(__always)
+    @inline(always)
     private func bridgeFoundationComponent<T>(_ component: Any, of componentType: Any.Type, to type: T.Type) -> T? {
         if T.self == String.self {
             guard componentType is NSString.Type, let string = component as? NSString else {
@@ -266,7 +266,7 @@ extension DictionaryValueDecoder {
     // MARK: -
 
     /// Whether the component stands for `nil`.
-    @inline(__always)
+    @inline(always)
     internal func decodeNil(from component: Any?) -> Bool {
         guard let component else {
             return true
@@ -277,7 +277,7 @@ extension DictionaryValueDecoder {
     }
 
     /// Decodes a string, a boolean or an integer that fits in 64 bits.
-    @inline(__always)
+    @inline(always)
     internal func decodePrimitive<T: Decodable>(
         _ type: T.Type,
         from component: Any?,
@@ -321,7 +321,7 @@ extension DictionaryValueDecoder {
     /// Decodes a value of any type nested in the container of this decoder at the key, or at the position
     /// of this decoder without a key: values that dictionaries hold as they are, such as numbers and arrays of them,
     /// are converted in place, and other values decode themselves with decoders of their own.
-    @inline(__always)
+    @inline(always)
     internal func decode<T: Decodable>(
         _ type: T.Type,
         from component: consuming Any?,

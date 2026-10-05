@@ -23,7 +23,7 @@ internal struct DictionaryKeyedEncodingStorage {
         values.reserveCapacity(capacity)
     }
 
-    @inline(__always)
+    @inline(always)
     internal mutating func store(_ value: consuming Any?, forKey key: String) {
         if !nestedEncoders.isEmpty {
             nestedEncoders.removeValue(forKey: key)?.encoder.discard()
@@ -90,7 +90,7 @@ internal struct DictionaryKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingC
 
     // MARK: - Instance Methods
 
-    @inline(__always)
+    @inline(always)
     private func store(_ value: consuming Any?, forKey key: Key) {
         // The key is encoded before the storage is accessed, as a custom strategy runs code of its own.
         let encodedKey = encoder.encodeKey(key)

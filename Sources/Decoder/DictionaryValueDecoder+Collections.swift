@@ -111,7 +111,7 @@ extension DictionaryValueDecoder {
     }
 
     /// Decodes an element of a primitive collection, which is a primitive value or a floating point number.
-    @inline(__always)
+    @inline(always)
     private func decodeElement<Element: Decodable>(
         of type: Element.Type,
         from component: Any?,

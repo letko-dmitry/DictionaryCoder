@@ -210,7 +210,7 @@ extension DictionaryValueEncoder {
     /// Encodes a value of any type nested in the container of this encoder at the key, or at the position
     /// of this encoder without a key: values that dictionaries hold as they are, such as numbers and arrays of them,
     /// are kept in place, and other values encode themselves with encoders of their own.
-    @inline(__always)
+    @inline(always)
     internal func encode<T: Encodable>(_ value: T, at key: @autoclosure () -> CodingPathKey) throws -> Any? {
         // Primitive values are encoded in place,
         // so that an array of numbers, for example, does not create a nested encoder for each element.

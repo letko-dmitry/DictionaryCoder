@@ -97,6 +97,8 @@ internal enum DictionaryKeyedComponents {
 
     // MARK: - Subscripts
 
+    // Unlike the rest, inlined by the optimizer rather than up front by `@inline(always)`,
+    // which makes the lookups of optional values measurably slower.
     @inline(__always)
     internal subscript(key: String) -> Any? {
         switch self {
@@ -161,14 +163,14 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
 
     // MARK: - Instance Methods
 
-    @inline(__always)
+    @inline(always)
     private func position(of key: CodingKey) -> CodingPosition {
         CodingPosition(node: decoder, key: .key(key))
     }
 
     // Unlike the default implementation of `decodeIfPresent`, looks the key up once rather than in `contains`,
     // `decodeNil` and `decode`.
-    @inline(__always)
+    @inline(always)
     private func presentComponent(forKey key: Key) -> Any? {
         guard let component = components[key.stringValue], !decoder.decodeNil(from: component) else {
             return nil
@@ -177,7 +179,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
         return component
     }
 
-    @inline(__always)
+    @inline(always)
     private func superDecoder(forAnyKey key: CodingKey) -> DictionaryValueDecoder {
         decoder.nestedDecoder(from: components[key.stringValue], at: .key(key))
     }

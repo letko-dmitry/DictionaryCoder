@@ -1,7 +1,7 @@
 import Foundation
 
 /// Reads a value of a generic type as the type that it is known to be, without the copy that a cast makes.
-@inline(__always)
+@inline(always)
 internal func unsafeCast<T, Value>(_ value: borrowing T, to type: Value.Type) -> Value {
     withUnsafePointer(to: value) { pointer in
         UnsafeRawPointer(pointer).assumingMemoryBound(to: Value.self).pointee
@@ -10,7 +10,7 @@ internal func unsafeCast<T, Value>(_ value: borrowing T, to type: Value.Type) ->
 
 /// Reads the value of an existential as the type that it is known to be, without the copy and the lookup
 /// that a cast makes.
-@inline(__always)
+@inline(always)
 internal func unsafeCast<Value>(contentsOf existential: Any, to type: Value.Type) -> Value {
     // Passing the existential to a generic parameter opens it, so the value itself is read.
     func read<T>(_ value: T) -> Value {
@@ -108,7 +108,7 @@ internal enum PrimitiveTypes {
 
     /// Whether values of the type are stored in dictionaries as they are,
     /// so they are encoded and decoded without nested containers.
-    @inline(__always)
+    @inline(always)
     internal static func contains(_ type: Any.Type) -> Bool {
         type == String.self
             || type == Bool.self

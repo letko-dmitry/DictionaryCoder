@@ -75,7 +75,7 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
 
     // MARK: - Instance Methods
 
-    @inline(__always)
+    @inline(always)
     private func makeNestedDecoder(from component: consuming Any?, at key: CodingPathKey) -> DictionaryValueDecoder {
         guard let decoder = state.reusableDecoder.take() else {
             return DictionaryValueDecoder(component: component, context: context, parent: self, key: key)
@@ -88,7 +88,7 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
         return decoder
     }
 
-    @inline(__always)
+    @inline(always)
     private func keepForReuse(_ decoder: inout DictionaryValueDecoder) {
         // A decoder that anything else still refers to, such as a stored container, is left to it.
         guard isKnownUniquelyReferenced(&decoder) else {
@@ -104,7 +104,7 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
     // MARK: -
 
     /// Decodes a nested value with a decoder of its own, the one kept from the last nested value if there is one.
-    @inline(__always)
+    @inline(always)
     internal func decodeNestedValue<T>(
         from component: consuming Any?,
         at key: CodingPathKey,
