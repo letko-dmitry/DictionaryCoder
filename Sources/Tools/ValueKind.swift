@@ -150,7 +150,7 @@ internal enum ValueKind {
         // MARK: - Initializers
 
         init() {
-            if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *) {
+            if #available(watchOS 11.0, *) {
                 int128 = ObjectIdentifier(Int128.self)
                 uInt128 = ObjectIdentifier(UInt128.self)
             } else {

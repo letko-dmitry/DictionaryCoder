@@ -174,7 +174,7 @@ internal struct DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContainer {
         try advancing(decoder.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     internal mutating func decode(_ type: Int128.Type) throws -> Int128 {
         try advancing(decoder.decodeWideInteger(type, from: peekNextComponent(), at: currentPosition))
     }
@@ -199,7 +199,7 @@ internal struct DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContainer {
         try advancing(decoder.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     internal mutating func decode(_ type: UInt128.Type) throws -> UInt128 {
         try advancing(decoder.decodeWideInteger(type, from: peekNextComponent(), at: currentPosition))
     }

@@ -13,14 +13,14 @@ Pod::Spec.new do |spec|
   spec.source_files = 'Sources/**/*.swift'
 
   spec.ios.frameworks = 'Foundation'
-  spec.ios.deployment_target = "15.0"
+  spec.ios.deployment_target = "18.0"
 
   spec.osx.frameworks = 'Foundation'
-  spec.osx.deployment_target = "12.0"
+  spec.osx.deployment_target = "15.0"
 
   spec.watchos.frameworks = 'Foundation'
-  spec.watchos.deployment_target = "9.0"
+  spec.watchos.deployment_target = "10.0"
 
   spec.tvos.frameworks = 'Foundation'
-  spec.tvos.deployment_target = "15.0"
+  spec.tvos.deployment_target = "18.0"
 end

@@ -48,7 +48,7 @@ extension DictionaryValueDecoder {
         }
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     internal func decodeWideInteger<T: FixedWidthInteger & Decodable>(
         _ type: T.Type,
         from component: Any?,
@@ -63,7 +63,7 @@ extension DictionaryValueDecoder {
 
     // `NSNumber` does not bridge 128-bit integers, so other integers are converted exactly.
     // The conversion takes no position, so that it is not copied for every caller along with its closure.
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     @inline(never)
     private func wideInteger<T: FixedWidthInteger>(of type: T.Type, from component: Any?) -> T? {
         if let value = component as? T {

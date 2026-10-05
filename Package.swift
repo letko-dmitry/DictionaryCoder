@@ -1,4 +1,4 @@
-// swift-tools-version:6.0
+// swift-tools-version:6.4
 import PackageDescription
 
 let swiftSettings: [SwiftSetting] = [
@@ -9,10 +9,11 @@ let swiftSettings: [SwiftSetting] = [
 let package = Package(
     name: "DictionaryCoder",
     platforms: [
-        .macOS(.v12),
-        .iOS(.v15),
-        .tvOS(.v15),
-        .watchOS(.v9)
+        .macOS(.v15),
+        .iOS(.v18),
+        .tvOS(.v18),
+        .watchOS(.v10),
+        .visionOS(.v2)
     ],
     products: [
         .library(

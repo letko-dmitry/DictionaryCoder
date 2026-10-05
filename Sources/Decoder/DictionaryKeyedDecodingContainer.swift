@@ -217,7 +217,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
         try decoder.decodePrimitive(type, from: components[key.stringValue], at: position(of: key))
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     internal func decode(_ type: Int128.Type, forKey key: Key) throws -> Int128 {
         try decoder.decodeWideInteger(type, from: components[key.stringValue], at: position(of: key))
     }
@@ -242,7 +242,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
         try decoder.decodePrimitive(type, from: components[key.stringValue], at: position(of: key))
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     internal func decode(_ type: UInt128.Type, forKey key: Key) throws -> UInt128 {
         try decoder.decodeWideInteger(type, from: components[key.stringValue], at: position(of: key))
     }
@@ -311,7 +311,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
         return try decoder.decodePrimitive(type, from: component, at: position(of: key))
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     internal func decodeIfPresent(_ type: Int128.Type, forKey key: Key) throws -> Int128? {
         guard let component = presentComponent(forKey: key) else {
             return nil
@@ -360,7 +360,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
         return try decoder.decodePrimitive(type, from: component, at: position(of: key))
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     internal func decodeIfPresent(_ type: UInt128.Type, forKey key: Key) throws -> UInt128? {
         guard let component = presentComponent(forKey: key) else {
             return nil

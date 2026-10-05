@@ -128,7 +128,7 @@ internal struct DictionaryKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingC
         store(value, forKey: key)
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     internal func encode(_ value: Int128, forKey key: Key) throws {
         store(value, forKey: key)
     }
@@ -153,7 +153,7 @@ internal struct DictionaryKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingC
         store(value, forKey: key)
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     internal func encode(_ value: UInt128, forKey key: Key) throws {
         store(value, forKey: key)
     }
@@ -211,7 +211,7 @@ internal struct DictionaryKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingC
         }
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     internal func encodeIfPresent(_ value: Int128?, forKey key: Key) throws {
         if let value {
             try encode(value, forKey: key)
@@ -248,7 +248,7 @@ internal struct DictionaryKeyedEncodingContainer<Key: CodingKey>: KeyedEncodingC
         }
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     internal func encodeIfPresent(_ value: UInt128?, forKey key: Key) throws {
         if let value {
             try encode(value, forKey: key)

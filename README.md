@@ -5,14 +5,14 @@
 [![Carthage compatible](https://img.shields.io/badge/Carthage-Compatible-brightgreen)](https://github.com/Carthage/Carthage)
 [![SPM compatible](https://img.shields.io/badge/SPM-Compatible-brightgreen)](https://swift.org/package-manager/)
 [![Platforms](https://img.shields.io/cocoapods/p/DictionaryCoder)](https://developer.apple.com/discover/)
-[![Xcode](https://img.shields.io/badge/Xcode-16-blue)](https://developer.apple.com/xcode)
-[![Swift](https://img.shields.io/badge/Swift-6.0-orange)](https://swift.org)
+[![Xcode](https://img.shields.io/badge/Xcode-27-blue)](https://developer.apple.com/xcode)
+[![Swift](https://img.shields.io/badge/Swift-6.4-orange)](https://swift.org)
 [![License](https://img.shields.io/github/license/almazrafi/DictionaryCoder)](https://opensource.org/licenses/MIT)
 
 ## Requirements
-- iOS 15.0+ / macOS 12.0+ / watchOS 9.0+ / tvOS 15.0+
-- Xcode 26.0+
-- Swift 6.0+
+- iOS 18.0+ / macOS 15.0+ / watchOS 10.0+ / tvOS 18.0+
+- Xcode 27.0+
+- Swift 6.4+
 
 ## Usage
 ```swift
@@ -43,7 +43,7 @@ and then specify `"DictionaryCoder"` as a dependency of the Target in which you 
 
 Here's an example `Package.swift`:
 ``` swift
-// swift-tools-version:6.0
+// swift-tools-version:6.4
 import PackageDescription
 
 let package = Package(
@@ -82,7 +82,7 @@ $ gem install cocoapods
 
 To integrate DictionaryCoder into your Xcode project using [CocoaPods](http://cocoapods.org), specify it in your `Podfile`:
 ``` ruby
-platform :ios, '15.0'
+platform :ios, '18.0'
 use_frameworks!
 
 target '<Your Target Name>' do

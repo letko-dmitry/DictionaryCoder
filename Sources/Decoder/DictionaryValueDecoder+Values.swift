@@ -232,14 +232,14 @@ extension DictionaryValueDecoder {
                 return unsafeCast(try decodeDecimal(from: component, at: key()), to: T.self)
 
             case .int128:
-                if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *) {
+                if #available(watchOS 11.0, *) {
                     let value = try decodeWideInteger(Int128.self, from: component, at: position(at: key()))
 
                     return unsafeCast(value, to: T.self)
                 }
 
             case .uInt128:
-                if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *) {
+                if #available(watchOS 11.0, *) {
                     let value = try decodeWideInteger(UInt128.self, from: component, at: position(at: key()))
 
                     return unsafeCast(value, to: T.self)

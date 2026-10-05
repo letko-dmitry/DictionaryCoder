@@ -177,7 +177,7 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
         try decodePrimitive(type, from: component, at: position)
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     internal func decode(_ type: Int128.Type) throws -> Int128 {
         try decodeWideInteger(type, from: component, at: position)
     }
@@ -202,7 +202,7 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
         try decodePrimitive(type, from: component, at: position)
     }
 
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    @available(watchOS 11.0, *)
     internal func decode(_ type: UInt128.Type) throws -> UInt128 {
         try decodeWideInteger(type, from: component, at: position)
     }
