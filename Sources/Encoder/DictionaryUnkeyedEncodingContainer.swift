@@ -1,174 +1,187 @@
-internal final class DictionaryUnkeyedEncodingContainer:
-    UnkeyedEncodingContainer,
-    DictionaryComponentContainer,
-    DictionaryComponentEncoder {
+/// The values of an unkeyed container.
+internal struct DictionaryUnkeyedEncodingStorage {
+
+    // MARK: - Type Methods
+
+    // `[Any]` cannot hold `nil` itself, so `nil` is kept as an element wrapped in `Any`.
+    @inline(__always)
+    private static func element(from value: consuming Any?) -> Any {
+        switch consume value {
+        case let value?:
+            value
+
+        case nil:
+            Optional<Any>.none as Any
+        }
+    }
 
     // MARK: - Instance Properties
 
-    private var components: [DictionaryComponent] = []
-
-    internal let options: DictionaryEncodingOptions
-    internal let userInfo: [CodingUserInfoKey: Any]
-    internal let codingPath: [CodingKey]
-
-    @inline(__always)
-    internal var currentCodingPath: [CodingKey] {
-        codingPath.appending(AnyCodingKey(count))
-    }
+    // Values are stored encoded, while the values of nested containers are taken along with the whole container,
+    // in place of the elements that stand for them until then.
+    private var values: [Any] = []
+    private var nestedEncoders: [(index: Int, encoder: DictionaryValueEncoder)] = []
 
     internal var count: Int {
-        components.count
-    }
-
-    // MARK: - Initializers
-
-    internal init(
-        options: DictionaryEncodingOptions,
-        userInfo: [CodingUserInfoKey: Any],
-        codingPath: [CodingKey]
-    ) {
-        self.options = options
-        self.userInfo = userInfo
-        self.codingPath = codingPath
+        values.count
     }
 
     // MARK: - Instance Methods
 
     @inline(__always)
-    private func collectComponent(_ component: consuming DictionaryComponent) {
+    internal mutating func append(_ value: consuming Any?) {
         // Most unkeyed containers of compact encodings hold a couple of elements, so room for two is reserved
         // up front. It saves a reallocation for every container of two and more elements, which grow as usual,
         // and costs memory only for containers of one element.
-        if components.isEmpty {
-            components.reserveCapacity(2)
+        if values.isEmpty {
+            values.reserveCapacity(2)
         }
 
-        components.append(component)
+        values.append(Self.element(from: value))
+    }
+
+    internal mutating func append(_ encoder: DictionaryValueEncoder) {
+        nestedEncoders.append((values.count, encoder))
+
+        append(nil)
+    }
+
+    /// Takes the values along with the values of nested containers, which leaves the storage empty.
+    internal mutating func take() -> [Any] {
+        var storage = Self()
+
+        swap(&storage, &self)
+
+        for (index, encoder) in storage.nestedEncoders {
+            storage.values[index] = Self.element(from: encoder.takeValue())
+        }
+
+        return storage.values
+    }
+
+    internal mutating func discard() {
+        for (_, encoder) in nestedEncoders {
+            encoder.discard()
+        }
+
+        self = Self()
+    }
+}
+
+internal struct DictionaryUnkeyedEncodingContainer: UnkeyedEncodingContainer {
+
+    // MARK: - Instance Properties
+
+    internal let encoder: DictionaryValueEncoder
+
+    internal var codingPath: [CodingKey] {
+        encoder.codingPath
+    }
+
+    internal var count: Int {
+        encoder.state.unkeyedValues.count
+    }
+
+    // MARK: - Initializers
+
+    internal init(encoder: DictionaryValueEncoder) {
+        self.encoder = encoder
+    }
+
+    // MARK: - Instance Methods
+
+    @inline(__always)
+    private func append(_ value: consuming Any?) {
+        encoder.state.unkeyedValues.append(value)
     }
 
     // MARK: - UnkeyedEncodingContainer
 
     internal func encodeNil() throws {
-        collectComponent(encodeNilComponent(at: currentCodingPath))
+        append(encoder.context.encodedNil)
     }
 
     internal func encode(_ value: Bool) throws {
-        collectComponent(encodeComponentValue(value, at: currentCodingPath))
+        append(value)
     }
 
     internal func encode(_ value: Int) throws {
-        collectComponent(encodeComponentValue(value, at: currentCodingPath))
+        append(value)
     }
 
     internal func encode(_ value: Int8) throws {
-        collectComponent(encodeComponentValue(value, at: currentCodingPath))
+        append(value)
     }
 
     internal func encode(_ value: Int16) throws {
-        collectComponent(encodeComponentValue(value, at: currentCodingPath))
+        append(value)
     }
 
     internal func encode(_ value: Int32) throws {
-        collectComponent(encodeComponentValue(value, at: currentCodingPath))
+        append(value)
     }
 
     internal func encode(_ value: Int64) throws {
-        collectComponent(encodeComponentValue(value, at: currentCodingPath))
+        append(value)
     }
 
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     internal func encode(_ value: Int128) throws {
-        collectComponent(encodeComponentValue(value, at: currentCodingPath))
+        append(value)
     }
 
     internal func encode(_ value: UInt) throws {
-        collectComponent(encodeComponentValue(value, at: currentCodingPath))
+        append(value)
     }
 
     internal func encode(_ value: UInt8) throws {
-        collectComponent(encodeComponentValue(value, at: currentCodingPath))
+        append(value)
     }
 
     internal func encode(_ value: UInt16) throws {
-        collectComponent(encodeComponentValue(value, at: currentCodingPath))
+        append(value)
     }
 
     internal func encode(_ value: UInt32) throws {
-        collectComponent(encodeComponentValue(value, at: currentCodingPath))
+        append(value)
     }
 
     internal func encode(_ value: UInt64) throws {
-        collectComponent(encodeComponentValue(value, at: currentCodingPath))
+        append(value)
     }
 
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     internal func encode(_ value: UInt128) throws {
-        collectComponent(encodeComponentValue(value, at: currentCodingPath))
+        append(value)
     }
 
     internal func encode(_ value: Double) throws {
-        collectComponent(try encodeComponentValue(value, at: currentCodingPath))
+        append(try encoder.encodeFloatingPoint(value, at: CodingPosition(node: encoder, key: .index(count))))
     }
 
     internal func encode(_ value: Float) throws {
-        collectComponent(try encodeComponentValue(value, at: currentCodingPath))
+        append(try encoder.encodeFloatingPoint(value, at: CodingPosition(node: encoder, key: .index(count))))
     }
 
     internal func encode(_ value: String) throws {
-        collectComponent(encodeComponentValue(value, at: currentCodingPath))
+        append(value)
     }
 
     internal func encode<T: Encodable>(_ value: T) throws {
-        collectComponent(try encodeComponentValue(value, at: currentCodingPath))
+        append(try encoder.encode(value, at: .index(count)))
     }
 
     internal func nestedContainer<NestedKey: CodingKey>(
         keyedBy keyType: NestedKey.Type
     ) -> KeyedEncodingContainer<NestedKey> {
-        let container = DictionaryAnyKeyedEncodingContainer(
-            options: options,
-            userInfo: userInfo,
-            codingPath: currentCodingPath
-        )
-
-        collectComponent(.container(container))
-
-        return KeyedEncodingContainer(
-            DictionaryKeyedEncodingContainer<NestedKey>(container: container)
-        )
+        encoder.nestedEncoderForNextElement().container(keyedBy: keyType)
     }
 
     internal func nestedUnkeyedContainer() -> UnkeyedEncodingContainer {
-        let container = DictionaryUnkeyedEncodingContainer(
-            options: options,
-            userInfo: userInfo,
-            codingPath: currentCodingPath
-        )
-
-        collectComponent(.container(container))
-
-        return container
+        encoder.nestedEncoderForNextElement().unkeyedContainer()
     }
 
     internal func superEncoder() -> Encoder {
-        let encoder = DictionarySingleValueEncodingContainer(
-            options: options,
-            userInfo: userInfo,
-            codingPath: currentCodingPath
-        )
-
-        collectComponent(.container(encoder))
-
-        return encoder
-    }
-
-    // MARK: - DictionaryComponentContainer
-
-    internal func resolveValue() -> Any? {
-        components.map { component in
-            let value = component.resolveValue()
-
-            return value ?? value as Any
-        }
+        encoder.nestedEncoderForNextElement()
     }
 }

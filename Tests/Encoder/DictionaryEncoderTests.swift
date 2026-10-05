@@ -160,6 +160,27 @@ final class DictionaryEncoderTests: XCTestCase, DictionaryEncoderTesting {
         XCTAssertEqual(dictionary["baz"] as? [Int128], [-1, 2])
     }
 
+    func testThatEncoderSucceedsWhenEncodingArraysOfPrimitives() {
+        struct EncodableStruct: Encodable {
+            let bools = [true, false]
+            let strings = ["foo", "bar"]
+            let ints = [1, -2]
+            let int8s: [Int8] = [1, -2]
+            let int16s: [Int16] = [1, -2]
+            let int32s: [Int32] = [1, -2]
+            let int64s: [Int64] = [1, -2]
+            let uints: [UInt] = [1, 2]
+            let uint8s: [UInt8] = [1, 2]
+            let uint16s: [UInt16] = [1, 2]
+            let uint32s: [UInt32] = [1, 2]
+            let uint64s: [UInt64] = [1, 2]
+            let doubles = [1.5, -2.5]
+            let floats: [Float] = [1.5, -2.5]
+        }
+
+        assertEncoderSucceeds(encoding: EncodableStruct())
+    }
+
     func testThatEncoderSucceedsWhenEncodingStringToURLDictionary() {
         let value = [
             "foo": URL(string: "https://swift.org")!,
@@ -366,6 +387,30 @@ final class DictionaryEncoderTests: XCTestCase, DictionaryEncoderTesting {
         assertEncoderSucceeds(encoding: EncodableStruct())
     }
 
+    func testThatEncoderSucceedsWhenReplacingValuesAndNestedContainersForKeys() {
+        struct EncodableStruct: Encodable {
+            enum CodingKeys: String, CodingKey {
+                case foo
+                case bar
+            }
+
+            func encode(to encoder: Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+                var fooContainer = container.nestedContainer(keyedBy: CodingKeys.self, forKey: .foo)
+
+                try fooContainer.encode(123, forKey: .bar)
+                try container.encode(456, forKey: .foo)
+                try container.encode(789, forKey: .bar)
+
+                var barContainer = container.nestedUnkeyedContainer(forKey: .bar)
+
+                try barContainer.encode(123)
+            }
+        }
+
+        assertEncoderSucceeds(encoding: EncodableStruct(), expecting: ["foo": 456, "bar": [123]])
+    }
+
     func testThatEncoderSucceedsWhenEncodingStructUsingSuperEncoder() {
         struct EncodableStruct: Encodable {
             enum CodingKeys: String, CodingKey {
@@ -493,6 +538,35 @@ final class DictionaryEncoderTests: XCTestCase, DictionaryEncoderTesting {
     }
 
     // MARK: -
+
+    func testThatEncoderSucceedsWhenEncodingValuesThatKeepTheirContainers() throws {
+        final class KeptContainers {
+            var containers: [UnkeyedEncodingContainer] = []
+        }
+
+        struct EncodableStruct: Encodable {
+            let value: Int
+            let keptContainers: KeptContainers
+
+            func encode(to encoder: Encoder) throws {
+                // Writes into the container of the previous value, which must not be the container of this one.
+                if let index = keptContainers.containers.indices.last {
+                    try keptContainers.containers[index].encode(-1)
+                }
+
+                var container = encoder.unkeyedContainer()
+
+                try container.encode(value)
+
+                keptContainers.containers.append(container)
+            }
+        }
+
+        let keptContainers = KeptContainers()
+        let values = (0..<3).map { EncodableStruct(value: $0, keptContainers: keptContainers) }
+
+        assertEncoderSucceeds(encoding: ["foo": values], expecting: ["foo": [[0], [1], [2]]])
+    }
 
     func testThatEncoderFailsWhenEncodingArray() {
         let value = [1, 2, 3]

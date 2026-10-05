@@ -4,8 +4,8 @@ public final class DictionaryEncoder: Sendable {
 
     // MARK: - Instance Properties
 
+    // The options and the user info are kept under one lock, which takes one allocation and one locking per call.
     private let optionsMutex: Mutex<DictionaryEncodingOptions>
-    private let userInfoMutex: Mutex<[CodingUserInfoKey: Sendable]>
 
     public var dateEncodingStrategy: DictionaryDateEncodingStrategy {
         get { optionsMutex.withLock { $0.dateEncodingStrategy } }
@@ -38,8 +38,8 @@ public final class DictionaryEncoder: Sendable {
     }
 
     public var userInfo: [CodingUserInfoKey: Sendable] {
-        get { userInfoMutex.withLock { $0 } }
-        set { userInfoMutex.withLock { $0 = newValue } }
+        get { optionsMutex.withLock { $0.userInfo } }
+        set { optionsMutex.withLock { $0.userInfo = newValue } }
     }
 
     // MARK: - Initializers
@@ -59,11 +59,11 @@ public final class DictionaryEncoder: Sendable {
             decimalEncodingStrategy: decimalEncodingStrategy,
             nonConformingFloatEncodingStrategy: nonConformingFloatEncodingStrategy,
             nilEncodingStrategy: nilEncodingStrategy,
-            keyEncodingStrategy: keyEncodingStrategy
+            keyEncodingStrategy: keyEncodingStrategy,
+            userInfo: userInfo
         )
 
         self.optionsMutex = Mutex(value: options)
-        self.userInfoMutex = Mutex(value: userInfo)
     }
 
     // MARK: - Instance Methods
@@ -74,21 +74,22 @@ public final class DictionaryEncoder: Sendable {
     ) throws -> [String: Sendable] {
         let options = optionsMutex.withLock { $0 }
 
-        let encoder = DictionarySingleValueEncodingContainer(
-            options: options,
-            userInfo: userInfo,
-            codingPath: []
+        let encoder = DictionaryValueEncoder(
+            context: DictionaryEncodingContext(options: options),
+            parent: nil,
+            key: .empty
         )
 
-        try encoding(encoder)
+        do {
+            try encoding(encoder)
+        } catch {
+            // The encoders of nested containers refer back to the encoders of their containers until taken.
+            encoder.discard()
+            throw error
+        }
 
-        guard let dictionary = encoder.resolveValue() as? [String: Sendable] else {
-            let errorContext = EncodingError.Context(
-                codingPath: [],
-                debugDescription: "Root component cannot be encoded in Dictionary"
-            )
-
-            throw EncodingError.invalidValue(value, errorContext)
+        guard let dictionary = encoder.takeValue() as? [String: Sendable] else {
+            throw EncodingError.invalidRootValue(value)
         }
 
         return dictionary
@@ -107,5 +108,19 @@ public final class DictionaryEncoder: Sendable {
         try encodeRootValue(value) { encoder in
             try value.encode(to: encoder, configuration: configuration)
         }
+    }
+}
+
+// Errors are made out of line and returned boxed, as an error or its context in a function,
+// both of a resilient layout, would make the compiler reserve stack space for them on every call.
+extension EncodingError {
+
+    // MARK: - Type Methods
+
+    @inline(never)
+    fileprivate static func invalidRootValue(_ value: Any) -> any Error {
+        let context = Context(codingPath: [], debugDescription: "Root component cannot be encoded in Dictionary")
+
+        return Self.invalidValue(value, context)
     }
 }
