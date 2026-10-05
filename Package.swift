@@ -3,7 +3,8 @@ import PackageDescription
 
 let swiftSettings: [SwiftSetting] = [
     .enableUpcomingFeature("MemberImportVisibility"),
-    .enableUpcomingFeature("InternalImportsByDefault")
+    .enableUpcomingFeature("InternalImportsByDefault"),
+    .strictMemorySafety()
 ]
 
 let package = Package(

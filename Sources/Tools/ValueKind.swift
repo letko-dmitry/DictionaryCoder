@@ -4,7 +4,7 @@ import Foundation
 @inline(always)
 internal func unsafeCast<T, Value>(_ value: borrowing T, to type: Value.Type) -> Value {
     withUnsafePointer(to: value) { pointer in
-        UnsafeRawPointer(pointer).assumingMemoryBound(to: Value.self).pointee
+        unsafe UnsafeRawPointer(pointer).assumingMemoryBound(to: Value.self).pointee
     }
 }
 

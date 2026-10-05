@@ -66,13 +66,13 @@ internal class CodingPathNode {
     // Accessed without the exclusivity checks that every access to a stored property of a class makes,
     // as no access lasts while anything else runs.
     internal final var parent: CodingPathNode? {
-        get { uncheckedParent }
-        set { uncheckedParent = newValue }
+        get { unsafe uncheckedParent }
+        set { unsafe uncheckedParent = newValue }
     }
 
     internal final var key: CodingPathKey {
-        get { uncheckedKey }
-        set { uncheckedKey = newValue }
+        get { unsafe uncheckedKey }
+        set { unsafe uncheckedKey = newValue }
     }
 
     internal final var path: [CodingKey] {
@@ -82,8 +82,8 @@ internal class CodingPathNode {
     // MARK: - Initializers
 
     internal init(parent: CodingPathNode?, key: CodingPathKey) {
-        self.uncheckedParent = parent
-        self.uncheckedKey = key
+        unsafe self.uncheckedParent = parent
+        unsafe self.uncheckedKey = key
     }
 
     // MARK: - Instance Methods

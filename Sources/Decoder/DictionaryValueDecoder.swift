@@ -37,13 +37,13 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
     // as no access lasts while anything else runs. They are kept apart, as the component is read
     // while the state changes, such as when a nested value of the component is decoded.
     internal var component: Any? {
-        _read { yield uncheckedComponent }
-        _modify { yield &uncheckedComponent }
+        _read { yield unsafe uncheckedComponent }
+        _modify { yield unsafe &uncheckedComponent }
     }
 
     internal var state: State {
-        _read { yield uncheckedState }
-        _modify { yield &uncheckedState }
+        _read { yield unsafe uncheckedState }
+        _modify { yield unsafe &uncheckedState }
     }
 
     internal var position: CodingPosition {
@@ -67,7 +67,7 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
         parent: CodingPathNode?,
         key: CodingPathKey
     ) {
-        self.uncheckedComponent = component
+        unsafe self.uncheckedComponent = component
         self.context = context
 
         super.init(parent: parent, key: key)

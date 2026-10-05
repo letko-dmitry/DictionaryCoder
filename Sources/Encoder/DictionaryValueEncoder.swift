@@ -69,8 +69,8 @@ internal final class DictionaryValueEncoder: CodingPathNode, Encoder, SingleValu
     // Accessed without the exclusivity checks that every access to a stored property of a class makes,
     // as no access lasts while anything else runs, such as the encoding of a nested value.
     internal var state: State {
-        _read { yield uncheckedState }
-        _modify { yield &uncheckedState }
+        _read { yield unsafe uncheckedState }
+        _modify { yield unsafe &uncheckedState }
     }
 
     internal var codingPath: [CodingKey] {

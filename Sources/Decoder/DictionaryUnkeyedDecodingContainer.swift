@@ -121,7 +121,7 @@ internal struct DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContainer {
         }
 
         // The decoder keeps the components from the creation of the container.
-        return decoder.state.unkeyedComponents.unsafelyUnwrapped[currentIndex]
+        return unsafe decoder.state.unkeyedComponents.unsafelyUnwrapped[currentIndex]
     }
 
     // Returns a value decoded from the current component and moves to the next one,
