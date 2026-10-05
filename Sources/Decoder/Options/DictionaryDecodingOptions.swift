@@ -7,4 +7,5 @@ internal struct DictionaryDecodingOptions {
     internal var decimalDecodingStrategy: DictionaryDecimalDecodingStrategy
     internal var nonConformingFloatDecodingStrategy: DictionaryNonConformingFloatDecodingStrategy
     internal var keyDecodingStrategy: DictionaryKeyDecodingStrategy
+    internal var userInfo: [CodingUserInfoKey: Sendable]
 }

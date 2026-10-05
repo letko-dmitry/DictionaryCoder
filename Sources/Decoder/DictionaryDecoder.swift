@@ -4,8 +4,8 @@ public final class DictionaryDecoder: Sendable {
 
     // MARK: - Instance Properties
 
+    // The options and the user info are kept under one lock, which takes one allocation and one locking per call.
     private let optionsMutex: Mutex<DictionaryDecodingOptions>
-    private let userInfoMutex: Mutex<[CodingUserInfoKey: Sendable]>
 
     public var dateDecodingStrategy: DictionaryDateDecodingStrategy {
         get { optionsMutex.withLock { $0.dateDecodingStrategy } }
@@ -33,8 +33,8 @@ public final class DictionaryDecoder: Sendable {
     }
 
     public var userInfo: [CodingUserInfoKey: Sendable] {
-        get { userInfoMutex.withLock { $0 } }
-        set { userInfoMutex.withLock { $0 = newValue } }
+        get { optionsMutex.withLock { $0.userInfo } }
+        set { optionsMutex.withLock { $0.userInfo = newValue } }
     }
 
     // MARK: - Initializers
@@ -52,23 +52,23 @@ public final class DictionaryDecoder: Sendable {
             dataDecodingStrategy: dataDecodingStrategy,
             decimalDecodingStrategy: decimalDecodingStrategy,
             nonConformingFloatDecodingStrategy: nonConformingFloatDecodingStrategy,
-            keyDecodingStrategy: keyDecodingStrategy
+            keyDecodingStrategy: keyDecodingStrategy,
+            userInfo: userInfo
         )
 
         self.optionsMutex = Mutex(value: options)
-        self.userInfoMutex = Mutex(value: userInfo)
     }
 
     // MARK: - Instance Methods
 
-    private func rootDecoder(for dictionary: [String: Any]) -> DictionarySingleValueDecodingContainer {
+    private func rootDecoder(for dictionary: [String: Any]) -> DictionaryValueDecoder {
         let options = optionsMutex.withLock { $0 }
 
-        return DictionarySingleValueDecodingContainer(
+        return DictionaryValueDecoder(
             component: dictionary,
-            options: options,
-            userInfo: userInfo,
-            codingPath: []
+            context: DictionaryDecodingContext(options: options),
+            parent: nil,
+            key: .empty
         )
     }
 

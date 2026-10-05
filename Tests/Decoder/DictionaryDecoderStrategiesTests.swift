@@ -48,6 +48,30 @@ final class DictionaryDecoderStrategiesTests: XCTestCase, DictionaryDecoderTesti
         assertDecoderSucceeds(decoding: DecodableStruct.self, from: dictionary)
     }
 
+    func testThatDecoderSucceedsWhenDecodingFoundationDictionaryUsingCustomFunctionForKeys() {
+        struct Nested: Decodable, Equatable {
+            let foo: Bool
+            let bar: Bool
+        }
+
+        struct DecodableStruct: Decodable, Equatable {
+            let nested: Nested
+        }
+
+        decoder.keyDecodingStrategy = .custom { codingPath in
+            AnyCodingKey(codingPath.last?.stringValue.components(separatedBy: ".").first ?? "unknown")
+        }
+
+        let nested: NSDictionary = [
+            "foo.value": true,
+            "bar.value": false
+        ]
+
+        let dictionary: [String: Any] = ["nested.value": nested]
+
+        assertDecoderSucceeds(decoding: DecodableStruct(nested: Nested(foo: true, bar: false)), from: dictionary)
+    }
+
     func testThatDecoderSucceedsWhenDecodingCollidingKeysUsingCustomFunctionForKeys() {
         decoder.keyDecodingStrategy = .custom { _ in AnyCodingKey("foobar") }
 
@@ -478,6 +502,30 @@ final class DictionaryDecoderStrategiesTests: XCTestCase, DictionaryDecoderTesti
         ]
 
         assertDecoderSucceeds(decoding: [String: Float].self, from: dictionary)
+    }
+
+    func testThatDecoderSucceedsWhenDecodingNonConformingFloatArrayFromStrings() {
+        decoder.nonConformingFloatDecodingStrategy = .convertFromString(
+            positiveInfinity: "+∞",
+            negativeInfinity: "-∞",
+            nan: "¬"
+        )
+
+        let dictionary: [String: Any] = ["foobar": ["+∞", "-∞", 1.5] as [Any]]
+
+        assertDecoderSucceeds(decoding: [String: [Double]].self, from: dictionary)
+    }
+
+    func testThatDecoderSucceedsWhenDecodingNonConformingFloatDictionaryFromStrings() {
+        decoder.nonConformingFloatDecodingStrategy = .convertFromString(
+            positiveInfinity: "+∞",
+            negativeInfinity: "-∞",
+            nan: "¬"
+        )
+
+        let dictionary: [String: Any] = ["foobar": ["foo": "+∞", "bar": "-∞", "baz": 1.5] as [String: Any]]
+
+        assertDecoderSucceeds(decoding: [String: [String: Double]].self, from: dictionary)
     }
 
     func testThatDecoderFailsWhenDecodingNonConformingFloatFromInvalidString() {

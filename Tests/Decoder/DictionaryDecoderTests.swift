@@ -175,6 +175,44 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
         assertDecoderSucceeds(decoding: value, from: dictionary)
     }
 
+    func testThatDecoderSucceedsWhenDecodingArraysOfPrimitives() {
+        struct DecodableStruct: Decodable, Equatable {
+            let bools: [Bool]
+            let strings: [String]
+            let ints: [Int]
+            let int8s: [Int8]
+            let int16s: [Int16]
+            let int32s: [Int32]
+            let int64s: [Int64]
+            let uints: [UInt]
+            let uint8s: [UInt8]
+            let uint16s: [UInt16]
+            let uint32s: [UInt32]
+            let uint64s: [UInt64]
+            let doubles: [Double]
+            let floats: [Float]
+        }
+
+        let dictionary: [String: Any] = [
+            "bools": [true, false],
+            "strings": ["foo", "bar"],
+            "ints": [1, -2],
+            "int8s": [1, -2] as [Int8],
+            "int16s": [1, -2] as [Int16],
+            "int32s": [1, -2] as [Int32],
+            "int64s": [1, -2] as [Int64],
+            "uints": [1, 2] as [UInt],
+            "uint8s": [1, 2] as [UInt8],
+            "uint16s": [1, 2] as [UInt16],
+            "uint32s": [1, 2] as [UInt32],
+            "uint64s": [1, 2] as [UInt64],
+            "doubles": [1.5, -2.5],
+            "floats": [1.5, -2.5] as [Float]
+        ]
+
+        assertDecoderSucceeds(decoding: DecodableStruct.self, from: dictionary)
+    }
+
     func testThatDecoderSucceedsWhenDecodingStringToStringDictionary() {
         let dictionary = [
             "foo": "qwe",
@@ -282,6 +320,42 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
             absent: nil,
             null: nil,
             nullNested: nil
+        )
+
+        assertDecoderSucceeds(decoding: value, from: dictionary)
+    }
+
+    func testThatDecoderSucceedsWhenDecodingFoundationDictionaries() throws {
+        struct Nested: Decodable, Equatable {
+            let foo: Int
+            let bar: String?
+        }
+
+        struct DecodableStruct: Decodable, Equatable {
+            let nested: Nested
+            let nestedArray: [Nested]
+            let null: Int?
+            let absent: Int?
+            let dictionary: [String: Int]
+        }
+
+        let object: [String: Any] = [
+            "nested": ["foo": 1, "bar": "baz"],
+            "nestedArray": [["foo": 2]],
+            "null": NSNull(),
+            "dictionary": ["a": 1, "b": 2]
+        ]
+
+        // Nested objects of `JSONSerialization` output are Foundation dictionaries.
+        let json = try JSONSerialization.data(withJSONObject: object)
+        let dictionary = try XCTUnwrap(JSONSerialization.jsonObject(with: json) as? [String: Any])
+
+        let value = DecodableStruct(
+            nested: Nested(foo: 1, bar: "baz"),
+            nestedArray: [Nested(foo: 2, bar: nil)],
+            null: nil,
+            absent: nil,
+            dictionary: ["a": 1, "b": 2]
         )
 
         assertDecoderSucceeds(decoding: value, from: dictionary)
@@ -812,6 +886,41 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
 
     // MARK: -
 
+    func testThatDecoderSucceedsWhenDecodingValuesThatKeepTheirDecoders() throws {
+        final class KeptDecoders: @unchecked Sendable {
+            var decoders: [Decoder] = []
+            var previousValues: [Int] = []
+        }
+
+        struct DecodableStruct: Decodable, Equatable {
+            let value: Int
+
+            init(value: Int) {
+                self.value = value
+            }
+
+            init(from decoder: Decoder) throws {
+                let keptDecoders = try XCTUnwrap(decoder.userInfo[.keptDecoders] as? KeptDecoders)
+
+                // Reads through the decoder of the previous value, which must not decode this one.
+                if let previousDecoder = keptDecoders.decoders.last {
+                    keptDecoders.previousValues.append(try previousDecoder.singleValueContainer().decode(Int.self))
+                }
+
+                value = try decoder.singleValueContainer().decode(Int.self)
+
+                keptDecoders.decoders.append(decoder)
+            }
+        }
+
+        let keptDecoders = KeptDecoders()
+        let decoder = DictionaryDecoder(userInfo: [.keptDecoders: keptDecoders])
+        let values = try decoder.decode([String: [DecodableStruct]].self, from: ["foo": [0, 1, 2]])
+
+        XCTAssertEqual(values, ["foo": (0..<3).map(DecodableStruct.init(value:))])
+        XCTAssertEqual(keptDecoders.previousValues, [0, 1])
+    }
+
     func testThatDecoderFailsWhenDecodingArray() {
         let dictionary = ["foobar": 123]
 
@@ -1098,6 +1207,48 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
         }
     }
 
+    func testThatDecoderFailsWhenDecodingInvalidElementOfPrimitiveArray() {
+        let dictionary: [String: Any] = ["foo": [123, "456"] as [Any]]
+
+        assertDecoderFails(decoding: [String: [Int]].self, from: dictionary) { error in
+            switch error {
+            case let DecodingError.typeMismatch(type, context) where type is Int.Type:
+                return context.codingPath.map(\.stringValue) == ["foo", "1"]
+
+            default:
+                return false
+            }
+        }
+    }
+
+    func testThatDecoderFailsWhenDecodingInvalidValueOfPrimitiveDictionary() {
+        let dictionary: [String: Any] = ["foo": ["bar": 123, "baz": "456"] as [String: Any]]
+
+        assertDecoderFails(decoding: [String: [String: Int]].self, from: dictionary) { error in
+            switch error {
+            case let DecodingError.typeMismatch(type, context) where type is Int.Type:
+                return context.codingPath.map(\.stringValue) == ["foo", "baz"]
+
+            default:
+                return false
+            }
+        }
+    }
+
+    func testThatDecoderFailsWhenDecodingPrimitiveArrayFromNonArray() {
+        let dictionary = ["foobar": 123]
+
+        assertDecoderFails(decoding: [String: [Int]].self, from: dictionary) { error in
+            switch error {
+            case let DecodingError.typeMismatch(type, context) where type is [Any].Type:
+                return context.codingPath.map(\.stringValue) == ["foobar"]
+
+            default:
+                return false
+            }
+        }
+    }
+
     func testThatDecoderFailsWhenDecodingInvalidValueForNestedKeyedContainer() {
         struct Element: Decodable {
             let bar: Int
@@ -1127,4 +1278,11 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
 
         decoder = DictionaryDecoder()
     }
+}
+
+extension CodingUserInfoKey {
+
+    // MARK: - Type Properties
+
+    fileprivate static let keptDecoders = Self(rawValue: "keptDecoders")!
 }

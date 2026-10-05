@@ -44,8 +44,8 @@ internal enum DictionaryUnkeyedComponents {
 
         let componentType = type(of: component)
 
-        if componentType == [Any].self, let components = component as? [Any] {
-            self = .native(components)
+        if componentType == [Any].self {
+            self = .native(unsafeCast(contentsOf: component, to: [Any].self))
         } else if componentType is NSArray.Type, let components = component as? NSArray {
             self = .foundation(components)
         } else if let components = component as? [Any?] {
@@ -76,85 +76,72 @@ internal enum DictionaryUnkeyedComponents {
     }
 }
 
-internal final class DictionaryUnkeyedDecodingContainer:
-    UnkeyedDecodingContainer,
-    DictionaryComponentDecoder {
+// A structure of three words, which the existential of an unkeyed container holds without allocating it,
+// so the components are kept by the decoder of the array.
+internal struct DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContainer {
 
     // MARK: - Instance Properties
 
-    internal let components: DictionaryUnkeyedComponents
-    internal let options: DictionaryDecodingOptions
-    internal let userInfo: [CodingUserInfoKey: Any]
-    internal let codingPath: [CodingKey]
+    /// The decoder of the array, which is the node of the coding path of its elements.
+    internal let decoder: DictionaryValueDecoder
+    internal let componentCount: Int
 
     internal private(set) var currentIndex = 0
 
+    internal var codingPath: [CodingKey] {
+        decoder.codingPath
+    }
+
     @inline(__always)
-    internal var currentCodingPath: [CodingKey] {
-        codingPath.appending(AnyCodingKey(currentIndex))
+    internal var currentPosition: CodingPosition {
+        CodingPosition(node: decoder, key: .index(currentIndex))
     }
 
     internal var count: Int? {
-        components.count
+        componentCount
     }
 
     internal var isAtEnd: Bool {
-        currentIndex == count
+        currentIndex == componentCount
     }
 
     // MARK: - Initializers
 
-    internal init(
-        components: DictionaryUnkeyedComponents,
-        options: DictionaryDecodingOptions,
-        userInfo: [CodingUserInfoKey: Any],
-        codingPath: [CodingKey]
-    ) {
-        self.components = components
-        self.options = options
-        self.userInfo = userInfo
-        self.codingPath = codingPath
+    internal init(decoder: DictionaryValueDecoder, count: Int) {
+        self.decoder = decoder
+        self.componentCount = count
     }
 
     // MARK: - Instance Methods
 
     @inline(__always)
     private func peekNextComponent() throws -> Any? {
-        guard currentIndex < components.count else {
-            let errorContext = DecodingError.Context(
-                codingPath: currentCodingPath,
-                debugDescription: "Unkeyed container is at end."
-            )
-
-            throw DecodingError.valueNotFound(Any.self, errorContext)
+        guard currentIndex < componentCount else {
+            throw DecodingError.containerAtEnd(at: currentPosition)
         }
 
-        return components[currentIndex]
+        // The decoder keeps the components from the creation of the container.
+        return decoder.state.unkeyedComponents.unsafelyUnwrapped[currentIndex]
     }
 
+    // Returns a value decoded from the current component and moves to the next one,
+    // so that the container stays at a component that fails to decode.
     @inline(__always)
-    private func decodeNextComponent<T>(_ decodeComponent: (_ component: consuming Any?) throws -> T) throws -> T {
-        let value = try decodeComponent(try peekNextComponent())
-
+    private mutating func advancing<T>(_ value: consuming T) -> T {
         currentIndex += 1
 
         return value
     }
 
     @inline(__always)
-    private func superDecoder(for component: consuming Any?, at codingPath: consuming [CodingKey]) -> Decoder {
-        DictionarySingleValueDecodingContainer(
-            component: component,
-            options: options,
-            userInfo: userInfo,
-            codingPath: codingPath
-        )
+    private func superDecoder(for component: Any?) -> DictionaryValueDecoder {
+        decoder.nestedDecoder(from: component, at: .index(currentIndex))
     }
 
     // MARK: - UnkeyedDecodingContainer
 
-    internal func decodeNil() throws -> Bool {
-        guard decodeNilComponent(from: try peekNextComponent()) else {
+    internal mutating func decodeNil() throws -> Bool {
+        guard decoder.decodeNil(from: try peekNextComponent()) else {
             return false
         }
 
@@ -163,87 +150,101 @@ internal final class DictionaryUnkeyedDecodingContainer:
         return true
     }
 
-    internal func decode(_ type: Bool.Type) throws -> Bool {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
+    internal mutating func decode(_ type: Bool.Type) throws -> Bool {
+        try advancing(decoder.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
-    internal func decode(_ type: Int.Type) throws -> Int {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
+    internal mutating func decode(_ type: Int.Type) throws -> Int {
+        try advancing(decoder.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
-    internal func decode(_ type: Int8.Type) throws -> Int8 {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
+    internal mutating func decode(_ type: Int8.Type) throws -> Int8 {
+        try advancing(decoder.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
-    internal func decode(_ type: Int16.Type) throws -> Int16 {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
+    internal mutating func decode(_ type: Int16.Type) throws -> Int16 {
+        try advancing(decoder.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
-    internal func decode(_ type: Int32.Type) throws -> Int32 {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
+    internal mutating func decode(_ type: Int32.Type) throws -> Int32 {
+        try advancing(decoder.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
-    internal func decode(_ type: Int64.Type) throws -> Int64 {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
-    }
-
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-    internal func decode(_ type: Int128.Type) throws -> Int128 {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
-    }
-
-    internal func decode(_ type: UInt.Type) throws -> UInt {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
-    }
-
-    internal func decode(_ type: UInt8.Type) throws -> UInt8 {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
-    }
-
-    internal func decode(_ type: UInt16.Type) throws -> UInt16 {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
-    }
-
-    internal func decode(_ type: UInt32.Type) throws -> UInt32 {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
-    }
-
-    internal func decode(_ type: UInt64.Type) throws -> UInt64 {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
+    internal mutating func decode(_ type: Int64.Type) throws -> Int64 {
+        try advancing(decoder.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-    internal func decode(_ type: UInt128.Type) throws -> UInt128 {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
+    internal mutating func decode(_ type: Int128.Type) throws -> Int128 {
+        try advancing(decoder.decodeWideInteger(type, from: peekNextComponent(), at: currentPosition))
     }
 
-    internal func decode(_ type: Double.Type) throws -> Double {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
+    internal mutating func decode(_ type: UInt.Type) throws -> UInt {
+        try advancing(decoder.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
-    internal func decode(_ type: Float.Type) throws -> Float {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
+    internal mutating func decode(_ type: UInt8.Type) throws -> UInt8 {
+        try advancing(decoder.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
-    internal func decode(_ type: String.Type) throws -> String {
-        try decodeNextComponent { try decodeComponentValue(from: $0, at: currentCodingPath) }
+    internal mutating func decode(_ type: UInt16.Type) throws -> UInt16 {
+        try advancing(decoder.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
-    internal func decode<T: Decodable>(_ type: T.Type) throws -> T {
-        try decodeNextComponent { try decodeComponentValue(of: type, from: $0, at: currentCodingPath) }
+    internal mutating func decode(_ type: UInt32.Type) throws -> UInt32 {
+        try advancing(decoder.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
     }
 
-    internal func nestedContainer<NestedKey: CodingKey>(
+    internal mutating func decode(_ type: UInt64.Type) throws -> UInt64 {
+        try advancing(decoder.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
+    }
+
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+    internal mutating func decode(_ type: UInt128.Type) throws -> UInt128 {
+        try advancing(decoder.decodeWideInteger(type, from: peekNextComponent(), at: currentPosition))
+    }
+
+    internal mutating func decode(_ type: Double.Type) throws -> Double {
+        try advancing(decoder.decodeFloatingPoint(type, from: peekNextComponent(), at: currentPosition))
+    }
+
+    internal mutating func decode(_ type: Float.Type) throws -> Float {
+        try advancing(decoder.decodeFloatingPoint(type, from: peekNextComponent(), at: currentPosition))
+    }
+
+    internal mutating func decode(_ type: String.Type) throws -> String {
+        try advancing(decoder.decodePrimitive(type, from: peekNextComponent(), at: currentPosition))
+    }
+
+    internal mutating func decode<T: Decodable>(_ type: T.Type) throws -> T {
+        try advancing(decoder.decode(type, from: peekNextComponent(), at: .index(currentIndex)))
+    }
+
+    internal mutating func nestedContainer<NestedKey: CodingKey>(
         keyedBy keyType: NestedKey.Type
     ) throws -> KeyedDecodingContainer<NestedKey> {
-        try decodeNextComponent { try superDecoder(for: $0, at: currentCodingPath).container(keyedBy: keyType) }
+        try advancing(superDecoder(for: peekNextComponent()).container(keyedBy: keyType))
     }
 
-    internal func nestedUnkeyedContainer() throws -> UnkeyedDecodingContainer {
-        try decodeNextComponent { try superDecoder(for: $0, at: currentCodingPath).unkeyedContainer() }
+    internal mutating func nestedUnkeyedContainer() throws -> UnkeyedDecodingContainer {
+        try advancing(superDecoder(for: peekNextComponent()).unkeyedContainer())
     }
 
-    internal func superDecoder() throws -> Decoder {
-        try decodeNextComponent { superDecoder(for: $0, at: currentCodingPath) }
+    internal mutating func superDecoder() throws -> Decoder {
+        try advancing(superDecoder(for: peekNextComponent()))
+    }
+}
+
+// Errors are made out of line and returned boxed, as an error or its context in a function,
+// both of a resilient layout, would make the compiler reserve stack space for them on every call.
+extension DecodingError {
+
+    // MARK: - Type Methods
+
+    @inline(never)
+    fileprivate static func containerAtEnd(at position: CodingPosition) -> any Error {
+        let context = Context(codingPath: position.path, debugDescription: "Unkeyed container is at end.")
+
+        return Self.valueNotFound(Any.self, context)
     }
 }
