@@ -200,7 +200,6 @@ extension DictionaryComponentEncoder {
         encodePrimitiveValue(value, at: codingPath())
     }
 
-#if compiler(>=6.0)
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     @inline(__always)
     internal func encodeComponentValue(
@@ -209,7 +208,6 @@ extension DictionaryComponentEncoder {
     ) -> DictionaryComponent {
         encodePrimitiveValue(value, at: codingPath())
     }
-#endif
 
     @inline(__always)
     internal func encodeComponentValue(
@@ -251,7 +249,6 @@ extension DictionaryComponentEncoder {
         encodePrimitiveValue(value, at: codingPath())
     }
 
-#if compiler(>=6.0)
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     @inline(__always)
     internal func encodeComponentValue(
@@ -260,7 +257,6 @@ extension DictionaryComponentEncoder {
     ) -> DictionaryComponent {
         encodePrimitiveValue(value, at: codingPath())
     }
-#endif
 
     @inline(__always)
     internal func encodeComponentValue(

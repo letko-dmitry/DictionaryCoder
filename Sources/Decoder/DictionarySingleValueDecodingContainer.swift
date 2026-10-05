@@ -54,12 +54,10 @@ internal final class DictionarySingleValueDecodingContainer:
         try decodeComponentValue(from: component, at: codingPath)
     }
 
-#if compiler(>=6.0)
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     internal func decode(_ type: Int128.Type) throws -> Int128 {
         try decodeComponentValue(from: component, at: codingPath)
     }
-#endif
 
     internal func decode(_ type: UInt.Type) throws -> UInt {
         try decodeComponentValue(from: component, at: codingPath)
@@ -81,12 +79,10 @@ internal final class DictionarySingleValueDecodingContainer:
         try decodeComponentValue(from: component, at: codingPath)
     }
 
-#if compiler(>=6.0)
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     internal func decode(_ type: UInt128.Type) throws -> UInt128 {
         try decodeComponentValue(from: component, at: codingPath)
     }
-#endif
 
     internal func decode(_ type: Double.Type) throws -> Double {
         try decodeComponentValue(from: component, at: codingPath)

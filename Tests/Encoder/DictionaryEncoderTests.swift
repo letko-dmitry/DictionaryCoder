@@ -142,7 +142,6 @@ final class DictionaryEncoderTests: XCTestCase, DictionaryEncoderTesting {
         assertEncoderSucceeds(encoding: value)
     }
 
-#if compiler(>=6.0)
     func testThatEncoderSucceedsWhenEncodingWideIntegers() throws {
         guard #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *) else {
             throw XCTSkip("Int128 and UInt128 are unavailable")
@@ -160,7 +159,6 @@ final class DictionaryEncoderTests: XCTestCase, DictionaryEncoderTesting {
         XCTAssertEqual(dictionary["bar"] as? UInt128, .max)
         XCTAssertEqual(dictionary["baz"] as? [Int128], [-1, 2])
     }
-#endif
 
     func testThatEncoderSucceedsWhenEncodingStringToURLDictionary() {
         let value = [

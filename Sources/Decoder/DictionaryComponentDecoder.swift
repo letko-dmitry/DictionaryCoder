@@ -106,7 +106,6 @@ extension DictionaryComponentDecoder {
         return try decodeNonPrimitiveValue(from: component, at: codingPath())
     }
 
-#if compiler(>=6.0)
     // `NSNumber` does not bridge 128-bit integers, so other integers are converted exactly.
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     private func decodeWideInteger<T: FixedWidthInteger & Decodable>(
@@ -137,7 +136,6 @@ extension DictionaryComponentDecoder {
 
         return value
     }
-#endif
 
     private func decodeNonPrimitiveValue<T: Decodable>(
         of type: T.Type = T.self,
@@ -376,7 +374,6 @@ extension DictionaryComponentDecoder {
         try decodePrimitiveValue(from: component, at: codingPath())
     }
 
-#if compiler(>=6.0)
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     @inline(__always)
     internal func decodeComponentValue(
@@ -385,7 +382,6 @@ extension DictionaryComponentDecoder {
     ) throws -> Int128 {
         try decodeWideInteger(from: component, at: codingPath())
     }
-#endif
 
     @inline(__always)
     internal func decodeComponentValue(
@@ -427,7 +423,6 @@ extension DictionaryComponentDecoder {
         try decodePrimitiveValue(from: component, at: codingPath())
     }
 
-#if compiler(>=6.0)
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     @inline(__always)
     internal func decodeComponentValue(
@@ -436,7 +431,6 @@ extension DictionaryComponentDecoder {
     ) throws -> UInt128 {
         try decodeWideInteger(from: component, at: codingPath())
     }
-#endif
 
     @inline(__always)
     internal func decodeComponentValue(

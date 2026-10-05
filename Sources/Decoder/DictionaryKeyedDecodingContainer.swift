@@ -111,12 +111,10 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>:
         try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
-#if compiler(>=6.0)
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     internal func decode(_ type: Int128.Type, forKey key: Key) throws -> Int128 {
         try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
-#endif
 
     internal func decode(_ type: UInt.Type, forKey key: Key) throws -> UInt {
         try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
@@ -138,12 +136,10 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>:
         try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
 
-#if compiler(>=6.0)
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     internal func decode(_ type: UInt128.Type, forKey key: Key) throws -> UInt128 {
         try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
     }
-#endif
 
     internal func decode(_ type: Double.Type, forKey key: Key) throws -> Double {
         try decodeComponentValue(from: try component(forKey: key), at: codingPath.appending(key))
@@ -197,14 +193,12 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>:
         }
     }
 
-#if compiler(>=6.0)
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     internal func decodeIfPresent(_ type: Int128.Type, forKey key: Key) throws -> Int128? {
         try decodeIfPresent(forKey: key) { component in
             try decodeComponentValue(from: component, at: codingPath.appending(key))
         }
     }
-#endif
 
     internal func decodeIfPresent(_ type: UInt.Type, forKey key: Key) throws -> UInt? {
         try decodeIfPresent(forKey: key) { component in
@@ -236,14 +230,12 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>:
         }
     }
 
-#if compiler(>=6.0)
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     internal func decodeIfPresent(_ type: UInt128.Type, forKey key: Key) throws -> UInt128? {
         try decodeIfPresent(forKey: key) { component in
             try decodeComponentValue(from: component, at: codingPath.appending(key))
         }
     }
-#endif
 
     internal func decodeIfPresent(_ type: Double.Type, forKey key: Key) throws -> Double? {
         try decodeIfPresent(forKey: key) { component in

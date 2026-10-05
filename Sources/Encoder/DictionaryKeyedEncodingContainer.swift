@@ -54,12 +54,10 @@ internal final class DictionaryKeyedEncodingContainer<Key: CodingKey>:
         container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
-#if compiler(>=6.0)
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     internal func encode(_ value: Int128, forKey key: Key) throws {
         container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
-#endif
 
     internal func encode(_ value: UInt, forKey key: Key) throws {
         container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
@@ -81,12 +79,10 @@ internal final class DictionaryKeyedEncodingContainer<Key: CodingKey>:
         container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
 
-#if compiler(>=6.0)
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
     internal func encode(_ value: UInt128, forKey key: Key) throws {
         container.collectComponent(encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
     }
-#endif
 
     internal func encode(_ value: Double, forKey key: Key) throws {
         container.collectComponent(try encodeComponentValue(value, at: codingPath.appending(key)), forKey: key)
