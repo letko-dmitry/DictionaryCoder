@@ -1,40 +1,42 @@
 public import Foundation
 
+import struct os.OSAllocatedUnfairLock
+
 public final class DictionaryDecoder: Sendable {
 
     // MARK: - Instance Properties
 
     // The options and the user info are kept under one lock, which takes one allocation and one locking per call.
-    private let optionsMutex: Mutex<DictionaryDecodingOptions>
+    private let optionsLock: OSAllocatedUnfairLock<DictionaryDecodingOptions>
 
     public var dateDecodingStrategy: DictionaryDateDecodingStrategy {
-        get { optionsMutex.withLock { $0.dateDecodingStrategy } }
-        set { optionsMutex.withLock { $0.dateDecodingStrategy = newValue } }
+        get { optionsLock.withLock(\.dateDecodingStrategy) }
+        set { optionsLock.withLock { $0.dateDecodingStrategy = newValue } }
     }
 
     public var dataDecodingStrategy: DictionaryDataDecodingStrategy {
-        get { optionsMutex.withLock { $0.dataDecodingStrategy } }
-        set { optionsMutex.withLock { $0.dataDecodingStrategy = newValue } }
+        get { optionsLock.withLock(\.dataDecodingStrategy) }
+        set { optionsLock.withLock { $0.dataDecodingStrategy = newValue } }
     }
 
     public var decimalDecodingStrategy: DictionaryDecimalDecodingStrategy {
-        get { optionsMutex.withLock { $0.decimalDecodingStrategy } }
-        set { optionsMutex.withLock { $0.decimalDecodingStrategy = newValue } }
+        get { optionsLock.withLock(\.decimalDecodingStrategy) }
+        set { optionsLock.withLock { $0.decimalDecodingStrategy = newValue } }
     }
 
     public var nonConformingFloatDecodingStrategy: DictionaryNonConformingFloatDecodingStrategy {
-        get { optionsMutex.withLock { $0.nonConformingFloatDecodingStrategy } }
-        set { optionsMutex.withLock { $0.nonConformingFloatDecodingStrategy = newValue } }
+        get { optionsLock.withLock(\.nonConformingFloatDecodingStrategy) }
+        set { optionsLock.withLock { $0.nonConformingFloatDecodingStrategy = newValue } }
     }
 
     public var keyDecodingStrategy: DictionaryKeyDecodingStrategy {
-        get { optionsMutex.withLock { $0.keyDecodingStrategy } }
-        set { optionsMutex.withLock { $0.keyDecodingStrategy = newValue } }
+        get { optionsLock.withLock(\.keyDecodingStrategy) }
+        set { optionsLock.withLock { $0.keyDecodingStrategy = newValue } }
     }
 
     public var userInfo: [CodingUserInfoKey: Sendable] {
-        get { optionsMutex.withLock { $0.userInfo } }
-        set { optionsMutex.withLock { $0.userInfo = newValue } }
+        get { optionsLock.withLock(\.userInfo) }
+        set { optionsLock.withLock { $0.userInfo = newValue } }
     }
 
     // MARK: - Initializers
@@ -56,13 +58,13 @@ public final class DictionaryDecoder: Sendable {
             userInfo: userInfo
         )
 
-        self.optionsMutex = Mutex(value: options)
+        self.optionsLock = OSAllocatedUnfairLock(initialState: options)
     }
 
     // MARK: - Instance Methods
 
     private func rootDecoder(for dictionary: [String: Any]) -> DictionaryValueDecoder {
-        let options = optionsMutex.withLock { $0 }
+        let options = optionsLock.withLock(\.self)
 
         return DictionaryValueDecoder(
             component: dictionary,
