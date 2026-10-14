@@ -13,6 +13,8 @@ internal func unsafeCast<T, Value>(_ value: borrowing T, to type: Value.Type) ->
 @inline(always)
 internal func unsafeCast<Value>(contentsOf existential: Any, to type: Value.Type) -> Value {
     // Passing the existential to a generic parameter opens it, so the value itself is read.
+    // Inlined, as a call copies the value through its type, while inline it is a load of a known type.
+    @inline(always)
     func read<T>(_ value: T) -> Value {
         unsafeCast(value, to: Value.self)
     }
