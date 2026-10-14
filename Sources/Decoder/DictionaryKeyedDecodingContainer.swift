@@ -40,8 +40,8 @@ internal enum DictionaryKeyedComponents {
         // Checking the type first, as `as? [String: Any]` would bridge a Foundation dictionary as a whole.
         if componentType == [String: Any].self {
             self = .native(unsafeCast(contentsOf: component, to: [String: Any].self))
-        } else if componentType is NSDictionary.Type, let components = copy component as? NSDictionary {
-            self = .foundation(components)
+        } else if componentType is NSDictionary.Type {
+            self = .foundation(unsafeCast(contentsOf: component, to: NSDictionary.self))
         } else if let components = copy component as? [String: Any] {
             self = .native(components)
         } else {

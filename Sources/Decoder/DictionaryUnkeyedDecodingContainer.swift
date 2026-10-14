@@ -43,8 +43,8 @@ internal enum DictionaryUnkeyedComponents {
 
         if componentType == [Any].self {
             self = .native(unsafeCast(contentsOf: component, to: [Any].self))
-        } else if componentType is NSArray.Type, let components = copy component as? NSArray {
-            self = .foundation(components)
+        } else if componentType is NSArray.Type {
+            self = .foundation(unsafeCast(contentsOf: component, to: NSArray.self))
         } else if let components = copy component as? [Any?] {
             self = .optionals(components)
         } else {
