@@ -211,11 +211,13 @@ extension DictionaryValueDecoder {
         var dictionary = [String: Value](minimumCapacity: components.count)
 
         try components.forEach { componentKey, component in
-            dictionary[componentKey] = try decodeElement(
+            let value = try decodeElement(
                 type,
                 from: component,
                 at: CodingPathNode(parent: self, key: key()).position(at: .key(AnyCodingKey(componentKey)))
             )
+
+            dictionary.updateValue(value, forKey: componentKey)
         }
 
         return dictionary
