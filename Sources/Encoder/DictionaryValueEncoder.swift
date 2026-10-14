@@ -187,7 +187,9 @@ internal final class DictionaryValueEncoder: CodingPathNode, Encoder, SingleValu
         }
     }
 
+    // Out of line, as only rare paths, such as errors and replaced containers, call it.
     /// Drops the encoded value along with the encoders of nested containers, which refer back to this encoder.
+    @inline(never)
     internal func discard() {
         state.storage = .none
         state.singleValue = nil
