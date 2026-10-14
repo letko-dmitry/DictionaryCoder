@@ -22,7 +22,7 @@ internal func unsafeCast<Value>(contentsOf existential: Any, to type: Value.Type
     return read(existential)
 }
 
-internal struct PrimitiveArrayType {
+internal struct PrimitiveArrayTypes {
 
     // MARK: - Type Properties
 
@@ -63,7 +63,7 @@ internal struct PrimitiveArrayType {
     internal let float = ObjectIdentifier([Float].self)
 }
 
-internal struct PrimitiveDictionaryType {
+internal struct PrimitiveDictionaryTypes {
 
     // MARK: - Type Properties
 
@@ -217,9 +217,9 @@ internal enum ValueKind {
             self = .uInt128
 
         default:
-            if PrimitiveArrayType.contains(type) {
+            if PrimitiveArrayTypes.contains(type) {
                 self = .primitiveArray
-            } else if PrimitiveDictionaryType.contains(type) {
+            } else if PrimitiveDictionaryTypes.contains(type) {
                 self = .primitiveDictionary
             } else {
                 self = .nested

@@ -8,11 +8,11 @@ extension DictionaryValueDecoder {
     // bypassing `Array.init(from:)` that goes through an unkeyed container for every element.
     @inline(never)
     internal func decodePrimitiveArray<T: Decodable>(
-        of type: T.Type,
+        _ type: T.Type,
         from component: Any?,
         at key: @autoclosure () -> CodingPathKey
     ) throws -> T {
-        let identifiers = PrimitiveArrayType.identifiers
+        let identifiers = PrimitiveArrayTypes.identifiers
 
         // The collection is boxed, so that it is read as `T` once rather than in a copy for every type.
         let values: Any? = switch ObjectIdentifier(type) {
@@ -103,7 +103,7 @@ extension DictionaryValueDecoder {
     ) throws -> [Element] {
         try (0..<count).map { index in
             try decodeElement(
-                of: type,
+                type,
                 from: component(index),
                 at: CodingPathNode(parent: self, key: key()).position(at: .index(index))
             )
@@ -113,7 +113,7 @@ extension DictionaryValueDecoder {
     /// Decodes an element of a primitive collection, which is a primitive value or a floating point number.
     @inline(always)
     private func decodeElement<Element: Decodable>(
-        of type: Element.Type,
+        _ type: Element.Type,
         from component: consuming Any?,
         at position: @autoclosure () -> CodingPosition
     ) throws -> Element {
@@ -132,11 +132,11 @@ extension DictionaryValueDecoder {
     // bypassing `Dictionary.init(from:)` that goes through a keyed container for every element.
     @inline(never)
     internal func decodePrimitiveDictionary<T: Decodable>(
-        of type: T.Type,
+        _ type: T.Type,
         from component: Any?,
         at key: @autoclosure () -> CodingPathKey
     ) throws -> T {
-        let identifiers = PrimitiveDictionaryType.identifiers
+        let identifiers = PrimitiveDictionaryTypes.identifiers
 
         // The collection is boxed, so that it is read as `T` once rather than in a copy for every type.
         let values: Any? = switch ObjectIdentifier(type) {
@@ -212,7 +212,7 @@ extension DictionaryValueDecoder {
 
         try components.forEach { componentKey, component in
             dictionary[componentKey] = try decodeElement(
-                of: type,
+                type,
                 from: component,
                 at: CodingPathNode(parent: self, key: key()).position(at: .key(AnyCodingKey(componentKey)))
             )

@@ -4,34 +4,6 @@ extension DictionaryValueDecoder {
 
     // MARK: - Instance Methods
 
-    @inline(always)
-    private func decodePrimitiveValue<T: Decodable>(
-        of type: T.Type = T.self,
-        from component: consuming Any?,
-        at position: @autoclosure () -> CodingPosition
-    ) throws -> T {
-        // Taken out of the optional rather than copied, as copying an existential goes through its type.
-        guard let component = consume component else {
-            return try decodeConvertedNumber(from: nil, at: position())
-        }
-
-        let componentType = Swift.type(of: component)
-
-        if componentType == T.self {
-            return unsafeCast(contentsOf: component, to: T.self)
-        }
-
-        if let value = bridgeFoundationComponent(component, of: componentType, to: type) {
-            return value
-        }
-
-        if let value = component as? T {
-            return value
-        }
-
-        return try decodeConvertedNumber(from: component, at: position())
-    }
-
     // Bridging a Foundation object through `as? T` looks the bridging up on every call,
     // while bridging one known to be of the class that `T` bridges from calls the same conversion directly.
     @inline(always)
@@ -81,16 +53,16 @@ extension DictionaryValueDecoder {
             date = Date(timeIntervalSinceReferenceDate: timeInterval)
 
         case .secondsSince1970:
-            date = Date(timeIntervalSince1970: try decodePrimitiveValue(from: component, at: position(at: key())))
+            date = Date(timeIntervalSince1970: try decodePrimitive(from: component, at: position(at: key())))
 
         case .millisecondsSince1970:
-            let milliseconds: Double = try decodePrimitiveValue(from: component, at: position(at: key()))
+            let milliseconds: Double = try decodePrimitive(from: component, at: position(at: key()))
 
             date = Date(timeIntervalSince1970: milliseconds / 1000.0)
 
         case let .iso8601(style):
-            let formattedDate = try decodePrimitiveValue(
-                of: String.self,
+            let formattedDate = try decodePrimitive(
+                String.self,
                 from: component,
                 at: position(at: key())
             )
@@ -105,8 +77,8 @@ extension DictionaryValueDecoder {
             date = parsedDate
 
         case let .formatted(dateFormatter):
-            let formattedDate = try decodePrimitiveValue(
-                of: String.self,
+            let formattedDate = try decodePrimitive(
+                String.self,
                 from: component,
                 at: position(at: key())
             )
@@ -140,8 +112,8 @@ extension DictionaryValueDecoder {
             }
 
         case .base64:
-            let base64EncodedString = try decodePrimitiveValue(
-                of: String.self,
+            let base64EncodedString = try decodePrimitive(
+                String.self,
                 from: component,
                 at: position(at: key())
             )
@@ -156,7 +128,7 @@ extension DictionaryValueDecoder {
             return unsafeCast(data, to: T.self)
 
         case .blob:
-            let data = try decodePrimitiveValue(of: Data.self, from: component, at: position(at: key()))
+            let data = try decodePrimitive(Data.self, from: component, at: position(at: key()))
 
             return unsafeCast(data, to: T.self)
 
@@ -175,7 +147,7 @@ extension DictionaryValueDecoder {
             return unsafeCast(url, to: T.self)
         }
 
-        let string: String = try decodePrimitiveValue(from: component, at: position(at: key()))
+        let string: String = try decodePrimitive(from: component, at: position(at: key()))
 
         guard let url = URL(string: string) else {
             throw DecodingError.dataCorrupted(
@@ -190,12 +162,12 @@ extension DictionaryValueDecoder {
     // Kept out of `decode(_:from:at:)`, as the compiler reserves stack space for the generic copies here
     // on entry to the function, which would slow down decoding of every other value.
     @inline(never)
-    private func decodePrimitiveComponentValue<T: Decodable>(
-        of type: T.Type,
+    private func decodePrimitiveValue<T: Decodable>(
+        _ type: T.Type,
         from component: consuming Any?,
         at position: @autoclosure () -> CodingPosition
     ) throws -> T {
-        try decodePrimitiveValue(of: type, from: component, at: position())
+        try decodePrimitive(type, from: component, at: position())
     }
 
     @inline(never)
@@ -249,10 +221,10 @@ extension DictionaryValueDecoder {
             // Collections of primitive values are decoded in place as well, bypassing the initializers
             // of arrays and dictionaries that go through a container for every element.
             case .primitiveArray:
-                return try decodePrimitiveArray(of: type, from: component, at: key())
+                return try decodePrimitiveArray(type, from: component, at: key())
 
             case .primitiveDictionary:
-                return try decodePrimitiveDictionary(of: type, from: component, at: key())
+                return try decodePrimitiveDictionary(type, from: component, at: key())
 
             case .nested:
                 state.nestedValueType = typeIdentifier
@@ -280,14 +252,33 @@ extension DictionaryValueDecoder {
         type(of: component) is NSNull.Type
     }
 
-    /// Decodes a string, a boolean or an integer that fits in 64 bits.
+    /// Decodes a value that dictionaries hold as it is, such as a string, a number or data.
     @inline(always)
     internal func decodePrimitive<T: Decodable>(
-        _ type: T.Type,
+        _ type: T.Type = T.self,
         from component: consuming Any?,
         at position: @autoclosure () -> CodingPosition
     ) throws -> T {
-        try decodePrimitiveValue(of: type, from: component, at: position())
+        // Taken out of the optional rather than copied, as copying an existential goes through its type.
+        guard let component = consume component else {
+            return try decodeConvertedNumber(from: nil, at: position())
+        }
+
+        let componentType = Swift.type(of: component)
+
+        if componentType == T.self {
+            return unsafeCast(contentsOf: component, to: T.self)
+        }
+
+        if let value = bridgeFoundationComponent(component, of: componentType, to: type) {
+            return value
+        }
+
+        if let value = component as? T {
+            return value
+        }
+
+        return try decodeConvertedNumber(from: component, at: position())
     }
 
     internal func decodeFloatingPoint<T: FloatingPoint & Decodable>(
@@ -313,7 +304,7 @@ extension DictionaryValueDecoder {
             }
         }
 
-        let number: T = try decodePrimitiveValue(from: component, at: position())
+        let number: T = try decodePrimitive(from: component, at: position())
 
         guard number.isFinite else {
             throw DecodingError.nonConformingNumber(number, at: position())
@@ -334,7 +325,7 @@ extension DictionaryValueDecoder {
         // Primitive values are decoded in place,
         // so that an array of numbers, for example, does not create a nested decoder for each element.
         if PrimitiveTypes.contains(type) {
-            return try decodePrimitiveComponentValue(of: type, from: component, at: position(at: key()))
+            return try decodePrimitiveValue(type, from: component, at: position(at: key()))
         }
 
         return try decodeTypedValue(type, from: component, at: key())

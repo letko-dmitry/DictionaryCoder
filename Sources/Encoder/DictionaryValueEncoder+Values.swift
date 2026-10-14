@@ -73,7 +73,7 @@ extension DictionaryValueEncoder {
     // Reads the value as an array of its type, so it is called only for arrays of primitive values.
     @inline(never)
     private func encodePrimitiveArray<T>(_ value: T) -> [Any]? {
-        let identifiers = PrimitiveArrayType.identifiers
+        let identifiers = PrimitiveArrayTypes.identifiers
 
         switch ObjectIdentifier(T.self) {
         case identifiers.string:
