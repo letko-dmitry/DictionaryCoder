@@ -14,8 +14,10 @@ internal struct DictionaryKeyedEncodingStorage {
     // MARK: - Instance Properties
 
     // Values are stored encoded, while the values of nested containers are taken along with the whole container.
-    private var values: [String: Any] = [:]
-    private var nestedEncoders: [String: (kind: DictionaryNestedEncoderKind, encoder: DictionaryValueEncoder)] = [:]
+    // Empty dictionaries are made by `init()`, which takes the shared empty storage, unlike a literal,
+    // which calls `init(dictionaryLiteral:)`.
+    private var values = [String: Any]()
+    private var nestedEncoders = [String: (kind: DictionaryNestedEncoderKind, encoder: DictionaryValueEncoder)]()
 
     // MARK: - Instance Methods
 
