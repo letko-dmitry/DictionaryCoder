@@ -16,6 +16,8 @@ public enum DictionaryDateEncodingStrategy: Sendable {
 
     // MARK: - Type Properties
 
+    @inline(always)
+    @export(implementation)
     public static var iso8601: Self {
         .iso8601(style: .dateFormatter)
     }

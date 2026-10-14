@@ -26,6 +26,8 @@ public enum DictionaryDateDecodingStrategy: Sendable {
     // MARK: - Type Properties
 
     /// The strategy that formats dates according to the ISO 8601 standard in the style of `ISO8601DateFormatter`.
+    @inline(always)
+    @export(implementation)
     public static var iso8601: Self {
         .iso8601(style: .dateFormatter)
     }

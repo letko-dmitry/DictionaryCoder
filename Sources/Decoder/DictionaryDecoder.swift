@@ -81,6 +81,8 @@ public final class DictionaryDecoder: Sendable {
         try T(from: rootDecoder(for: dictionary))
     }
 
+    @inline(always)
+    @export(implementation)
     public func decode<T: Decodable>(from dictionary: [String: Any]) throws -> T {
         try decode(T.self, from: dictionary)
     }
