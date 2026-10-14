@@ -7,11 +7,12 @@ extension DictionaryValueDecoder {
     @inline(always)
     private func decodePrimitiveValue<T: Decodable>(
         of type: T.Type = T.self,
-        from component: Any?,
+        from component: consuming Any?,
         at position: @autoclosure () -> CodingPosition
     ) throws -> T {
-        guard let component else {
-            return try decodeConvertedNumber(from: component, at: position())
+        // Taken out of the optional rather than copied, as copying an existential goes through its type.
+        guard let component = consume component else {
+            return try decodeConvertedNumber(from: nil, at: position())
         }
 
         let componentType = Swift.type(of: component)
@@ -191,7 +192,7 @@ extension DictionaryValueDecoder {
     @inline(never)
     private func decodePrimitiveComponentValue<T: Decodable>(
         of type: T.Type,
-        from component: Any?,
+        from component: consuming Any?,
         at position: @autoclosure () -> CodingPosition
     ) throws -> T {
         try decodePrimitiveValue(of: type, from: component, at: position())
@@ -268,19 +269,22 @@ extension DictionaryValueDecoder {
     /// Whether the component stands for `nil`.
     @inline(always)
     internal func decodeNil(from component: Any?) -> Bool {
-        guard let component else {
-            return true
-        }
+        // Through `map`, as unwrapping the optional with `guard let` would copy the existential.
+        component.map(isNull) ?? true
+    }
 
+    /// Whether the component is `NSNull`.
+    @inline(always)
+    internal func isNull(_ component: Any) -> Bool {
         // Unlike `is NSNull`, checking the type does not bridge Swift values to Objective-C objects.
-        return type(of: component) is NSNull.Type
+        type(of: component) is NSNull.Type
     }
 
     /// Decodes a string, a boolean or an integer that fits in 64 bits.
     @inline(always)
     internal func decodePrimitive<T: Decodable>(
         _ type: T.Type,
-        from component: Any?,
+        from component: consuming Any?,
         at position: @autoclosure () -> CodingPosition
     ) throws -> T {
         try decodePrimitiveValue(of: type, from: component, at: position())
@@ -288,12 +292,12 @@ extension DictionaryValueDecoder {
 
     internal func decodeFloatingPoint<T: FloatingPoint & Decodable>(
         _ type: T.Type,
-        from component: Any?,
+        from component: consuming Any?,
         at position: @autoclosure () -> CodingPosition
     ) throws -> T {
         // The strategy is checked first, so that numbers are not cast to `String` with the default strategy.
         if case .convertFromString = context.options.nonConformingFloatDecodingStrategy,
-           let string = component as? String {
+           let string = copy component as? String {
             switch context.options.nonConformingFloatDecodingStrategy {
             case let .convertFromString(positiveInfinity, _, _) where string == positiveInfinity:
                 return T.infinity

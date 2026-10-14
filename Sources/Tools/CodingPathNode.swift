@@ -12,7 +12,7 @@ internal struct CodingPathKey {
 
     // MARK: - Type Methods
 
-    internal static func key(_ key: CodingKey) -> Self {
+    internal static func key(_ key: consuming CodingKey) -> Self {
         Self(codingKey: key, index: -1)
     }
 
@@ -112,7 +112,7 @@ internal class CodingPathNode {
     }
 
     /// The position of a value in the container of this node.
-    internal final func position(at key: CodingPathKey) -> CodingPosition {
+    internal final func position(at key: consuming CodingPathKey) -> CodingPosition {
         CodingPosition(node: self, key: key)
     }
 }

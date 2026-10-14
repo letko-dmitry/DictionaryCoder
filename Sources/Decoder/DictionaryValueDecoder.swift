@@ -76,20 +76,23 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
     // MARK: - Instance Methods
 
     @inline(always)
-    private func makeNestedDecoder(from component: consuming Any?, at key: CodingPathKey) -> DictionaryValueDecoder {
+    private func makeNestedDecoder(
+        from component: consuming Any?,
+        at key: consuming CodingPathKey
+    ) -> DictionaryValueDecoder {
         guard let decoder = state.reusableDecoder.take() else {
             return DictionaryValueDecoder(component: component, context: context, parent: self, key: key)
         }
 
         decoder.parent = self
-        decoder.key = key
+        decoder.key = consume key
         decoder.component = consume component
 
         return decoder
     }
 
     @inline(always)
-    private func keepForReuse(_ decoder: inout DictionaryValueDecoder) {
+    private func keepForReuse(_ decoder: consuming DictionaryValueDecoder) {
         // A decoder that anything else still refers to, such as a stored container, is left to it.
         guard isKnownUniquelyReferenced(&decoder) else {
             return
@@ -98,7 +101,7 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
         // A kept decoder does not refer back, so that the decoders do not retain each other.
         decoder.parent = nil
 
-        state.reusableDecoder = decoder
+        state.reusableDecoder = consume decoder
     }
 
     // MARK: -
@@ -107,26 +110,29 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
     @inline(always)
     internal func decodeNestedValue<T>(
         from component: consuming Any?,
-        at key: CodingPathKey,
+        at key: consuming CodingPathKey,
         decoding: (_ decoder: DictionaryValueDecoder) throws -> T
     ) throws -> T {
-        var decoder = makeNestedDecoder(from: component, at: key)
+        let decoder = makeNestedDecoder(from: component, at: key)
         let value = try decoding(decoder)
 
-        keepForReuse(&decoder)
+        keepForReuse(consume decoder)
 
         return value
     }
 
     /// The decoder of a nested container or a super decoder, which is not reused, as the caller keeps it.
-    internal func nestedDecoder(from component: Any?, at key: CodingPathKey) -> DictionaryValueDecoder {
+    internal func nestedDecoder(
+        from component: consuming Any?,
+        at key: consuming CodingPathKey
+    ) -> DictionaryValueDecoder {
         DictionaryValueDecoder(component: component, context: context, parent: self, key: key)
     }
 
     // MARK: - Decoder
 
     internal func container<Key: CodingKey>(keyedBy keyType: Key.Type) throws -> KeyedDecodingContainer<Key> {
-        guard let components = DictionaryKeyedComponents(component) else {
+        guard let components = component.flatMap(DictionaryKeyedComponents.init) else {
             throw DecodingError.keyedContainerTypeMismatch(at: self, component: component)
         }
 
@@ -134,7 +140,7 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
     }
 
     internal func unkeyedContainer() throws -> UnkeyedDecodingContainer {
-        guard let components = DictionaryUnkeyedComponents(component) else {
+        guard let components = component.flatMap(DictionaryUnkeyedComponents.init) else {
             throw DecodingError.unkeyedContainerTypeMismatch(at: self, component: component)
         }
 

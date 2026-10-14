@@ -33,19 +33,16 @@ internal enum DictionaryKeyedComponents {
 
     // MARK: - Initializers
 
-    internal init?(_ component: Any?) {
-        guard let component else {
-            return nil
-        }
-
+    // Takes the component unwrapped and borrowed, as unwrapping or passing an existential owned copies it.
+    internal init?(_ component: borrowing Any) {
         let componentType = type(of: component)
 
         // Checking the type first, as `as? [String: Any]` would bridge a Foundation dictionary as a whole.
         if componentType == [String: Any].self {
             self = .native(unsafeCast(contentsOf: component, to: [String: Any].self))
-        } else if componentType is NSDictionary.Type, let components = component as? NSDictionary {
+        } else if componentType is NSDictionary.Type, let components = copy component as? NSDictionary {
             self = .foundation(components)
-        } else if let components = component as? [String: Any] {
+        } else if let components = copy component as? [String: Any] {
             self = .native(components)
         } else {
             return nil
@@ -164,15 +161,15 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
     // MARK: - Instance Methods
 
     @inline(always)
-    private func position(of key: CodingKey) -> CodingPosition {
+    private func position(of key: consuming CodingKey) -> CodingPosition {
         CodingPosition(node: decoder, key: .key(key))
     }
 
     // Unlike the default implementation of `decodeIfPresent`, looks the key up once rather than in `contains`,
-    // `decodeNil` and `decode`.
+    // `decodeNil` and `decode`. Callers pass the component on with `consume`, as passing a binding copies it.
     @inline(always)
     private func presentComponent(forKey key: Key) -> Any? {
-        guard let component = components[key.stringValue], !decoder.decodeNil(from: component) else {
+        guard let component = components[key.stringValue], !decoder.isNull(component) else {
             return nil
         }
 
@@ -180,7 +177,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
     }
 
     @inline(always)
-    private func superDecoder(forAnyKey key: CodingKey) -> DictionaryValueDecoder {
+    private func superDecoder(forAnyKey key: consuming CodingKey) -> DictionaryValueDecoder {
         decoder.nestedDecoder(from: components[key.stringValue], at: .key(key))
     }
 
@@ -270,7 +267,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodePrimitive(type, from: component, at: position(of: key))
+        return try decoder.decodePrimitive(type, from: consume component, at: position(of: key))
     }
 
     internal func decodeIfPresent(_ type: Int.Type, forKey key: Key) throws -> Int? {
@@ -278,7 +275,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodePrimitive(type, from: component, at: position(of: key))
+        return try decoder.decodePrimitive(type, from: consume component, at: position(of: key))
     }
 
     internal func decodeIfPresent(_ type: Int8.Type, forKey key: Key) throws -> Int8? {
@@ -286,7 +283,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodePrimitive(type, from: component, at: position(of: key))
+        return try decoder.decodePrimitive(type, from: consume component, at: position(of: key))
     }
 
     internal func decodeIfPresent(_ type: Int16.Type, forKey key: Key) throws -> Int16? {
@@ -294,7 +291,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodePrimitive(type, from: component, at: position(of: key))
+        return try decoder.decodePrimitive(type, from: consume component, at: position(of: key))
     }
 
     internal func decodeIfPresent(_ type: Int32.Type, forKey key: Key) throws -> Int32? {
@@ -302,7 +299,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodePrimitive(type, from: component, at: position(of: key))
+        return try decoder.decodePrimitive(type, from: consume component, at: position(of: key))
     }
 
     internal func decodeIfPresent(_ type: Int64.Type, forKey key: Key) throws -> Int64? {
@@ -310,7 +307,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodePrimitive(type, from: component, at: position(of: key))
+        return try decoder.decodePrimitive(type, from: consume component, at: position(of: key))
     }
 
     @available(watchOS 11.0, *)
@@ -319,7 +316,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodeWideInteger(type, from: component, at: position(of: key))
+        return try decoder.decodeWideInteger(type, from: consume component, at: position(of: key))
     }
 
     internal func decodeIfPresent(_ type: UInt.Type, forKey key: Key) throws -> UInt? {
@@ -327,7 +324,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodePrimitive(type, from: component, at: position(of: key))
+        return try decoder.decodePrimitive(type, from: consume component, at: position(of: key))
     }
 
     internal func decodeIfPresent(_ type: UInt8.Type, forKey key: Key) throws -> UInt8? {
@@ -335,7 +332,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodePrimitive(type, from: component, at: position(of: key))
+        return try decoder.decodePrimitive(type, from: consume component, at: position(of: key))
     }
 
     internal func decodeIfPresent(_ type: UInt16.Type, forKey key: Key) throws -> UInt16? {
@@ -343,7 +340,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodePrimitive(type, from: component, at: position(of: key))
+        return try decoder.decodePrimitive(type, from: consume component, at: position(of: key))
     }
 
     internal func decodeIfPresent(_ type: UInt32.Type, forKey key: Key) throws -> UInt32? {
@@ -351,7 +348,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodePrimitive(type, from: component, at: position(of: key))
+        return try decoder.decodePrimitive(type, from: consume component, at: position(of: key))
     }
 
     internal func decodeIfPresent(_ type: UInt64.Type, forKey key: Key) throws -> UInt64? {
@@ -359,7 +356,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodePrimitive(type, from: component, at: position(of: key))
+        return try decoder.decodePrimitive(type, from: consume component, at: position(of: key))
     }
 
     @available(watchOS 11.0, *)
@@ -368,7 +365,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodeWideInteger(type, from: component, at: position(of: key))
+        return try decoder.decodeWideInteger(type, from: consume component, at: position(of: key))
     }
 
     internal func decodeIfPresent(_ type: Double.Type, forKey key: Key) throws -> Double? {
@@ -376,7 +373,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodeFloatingPoint(type, from: component, at: position(of: key))
+        return try decoder.decodeFloatingPoint(type, from: consume component, at: position(of: key))
     }
 
     internal func decodeIfPresent(_ type: Float.Type, forKey key: Key) throws -> Float? {
@@ -384,7 +381,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodeFloatingPoint(type, from: component, at: position(of: key))
+        return try decoder.decodeFloatingPoint(type, from: consume component, at: position(of: key))
     }
 
     internal func decodeIfPresent(_ type: String.Type, forKey key: Key) throws -> String? {
@@ -392,7 +389,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decodePrimitive(type, from: component, at: position(of: key))
+        return try decoder.decodePrimitive(type, from: consume component, at: position(of: key))
     }
 
     internal func decodeIfPresent<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T? {
@@ -400,7 +397,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
             return nil
         }
 
-        return try decoder.decode(type, from: component, at: .key(key))
+        return try decoder.decode(type, from: consume component, at: .key(key))
     }
 
     internal func nestedContainer<NestedKey: CodingKey>(

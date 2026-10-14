@@ -37,18 +37,15 @@ internal enum DictionaryUnkeyedComponents {
 
     // MARK: - Initializers
 
-    internal init?(_ component: Any?) {
-        guard let component else {
-            return nil
-        }
-
+    // Takes the component unwrapped and borrowed, as unwrapping or passing an existential owned copies it.
+    internal init?(_ component: borrowing Any) {
         let componentType = type(of: component)
 
         if componentType == [Any].self {
             self = .native(unsafeCast(contentsOf: component, to: [Any].self))
-        } else if componentType is NSArray.Type, let components = component as? NSArray {
+        } else if componentType is NSArray.Type, let components = copy component as? NSArray {
             self = .foundation(components)
-        } else if let components = component as? [Any?] {
+        } else if let components = copy component as? [Any?] {
             self = .optionals(components)
         } else {
             return nil
@@ -65,7 +62,11 @@ internal enum DictionaryUnkeyedComponents {
 
             // Optional elements, such as `nil` that the encoder writes, are kept in an array of `Any` wrapped,
             // so they are unwrapped as converting the array to `[Any?]` would.
-            return type(of: component) == Optional<Any>.self ? Self.cast(component, to: Any?.self) : component
+            if type(of: component) == Optional<Any>.self {
+                return Self.cast(component, to: Any?.self)
+            }
+
+            return consume component
 
         case let .foundation(components):
             return components[index]
@@ -134,7 +135,7 @@ internal struct DictionaryUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
 
     @inline(always)
-    private func superDecoder(for component: Any?) -> DictionaryValueDecoder {
+    private func superDecoder(for component: consuming Any?) -> DictionaryValueDecoder {
         decoder.nestedDecoder(from: component, at: .index(currentIndex))
     }
 

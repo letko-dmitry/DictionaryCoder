@@ -80,7 +80,7 @@ extension DictionaryValueDecoder {
     ) throws -> [Element]? {
         // The components are read directly rather than through their subscript,
         // which checks every element for `nil` and the kind of the components.
-        switch DictionaryUnkeyedComponents(component) {
+        switch component.flatMap(DictionaryUnkeyedComponents.init) {
         case let .native(components):
             return try decodeElements(of: type, count: components.count, at: key()) { components[$0] }
 
@@ -114,7 +114,7 @@ extension DictionaryValueDecoder {
     @inline(always)
     private func decodeElement<Element: Decodable>(
         of type: Element.Type,
-        from component: Any?,
+        from component: consuming Any?,
         at position: @autoclosure () -> CodingPosition
     ) throws -> Element {
         if type == Double.self {
@@ -204,7 +204,7 @@ extension DictionaryValueDecoder {
         at key: @autoclosure () -> CodingPathKey
     ) throws -> [String: Value]? {
         guard case .useDefaultKeys = context.options.keyDecodingStrategy,
-              let components = DictionaryKeyedComponents(component) else {
+              let components = component.flatMap(DictionaryKeyedComponents.init) else {
             return nil
         }
 

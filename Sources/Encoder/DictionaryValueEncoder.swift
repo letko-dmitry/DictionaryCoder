@@ -105,19 +105,19 @@ internal final class DictionaryValueEncoder: CodingPathNode, Encoder, SingleValu
     }
 
     @inline(always)
-    private func makeNestedEncoder(at key: CodingPathKey) -> DictionaryValueEncoder {
+    private func makeNestedEncoder(at key: consuming CodingPathKey) -> DictionaryValueEncoder {
         guard let encoder = state.reusableEncoder.take() else {
             return DictionaryValueEncoder(context: context, parent: self, key: key)
         }
 
         encoder.parent = self
-        encoder.key = key
+        encoder.key = consume key
 
         return encoder
     }
 
     @inline(always)
-    private func keepForReuse(_ encoder: inout DictionaryValueEncoder) {
+    private func keepForReuse(_ encoder: consuming DictionaryValueEncoder) {
         // An encoder that anything else still refers to, such as a stored container, is left to it.
         guard isKnownUniquelyReferenced(&encoder) else {
             return
@@ -126,7 +126,7 @@ internal final class DictionaryValueEncoder: CodingPathNode, Encoder, SingleValu
         // A kept encoder does not refer back, so that the encoders do not retain each other.
         encoder.parent = nil
 
-        state.reusableEncoder = encoder
+        state.reusableEncoder = consume encoder
     }
 
     @inline(always)
@@ -200,10 +200,10 @@ internal final class DictionaryValueEncoder: CodingPathNode, Encoder, SingleValu
     /// Encodes a nested value with an encoder of its own, the one kept from the last nested value if there is one.
     @inline(always)
     internal func encodeNestedValue(
-        at key: CodingPathKey,
+        at key: consuming CodingPathKey,
         encoding: (_ encoder: DictionaryValueEncoder) throws -> Void
     ) throws -> Any? {
-        var encoder = makeNestedEncoder(at: key)
+        let encoder = makeNestedEncoder(at: key)
 
         do {
             try encoding(encoder)
@@ -214,7 +214,7 @@ internal final class DictionaryValueEncoder: CodingPathNode, Encoder, SingleValu
 
         let value = encoder.takeValue()
 
-        keepForReuse(&encoder)
+        keepForReuse(consume encoder)
 
         return value
     }
