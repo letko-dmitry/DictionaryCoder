@@ -9,26 +9,26 @@ extension DictionaryValueDecoder {
     @inline(always)
     private func bridgeFoundationComponent<T>(_ component: Any, of componentType: Any.Type, to type: T.Type) -> T? {
         if T.self == String.self {
-            guard componentType is NSString.Type, let string = component as? NSString else {
+            guard componentType is NSString.Type else {
                 return nil
             }
 
-            return string as? T
+            return unsafeCast(contentsOf: component, to: NSString.self) as? T
         }
 
         if T.self == Data.self {
-            guard componentType is NSData.Type, let data = component as? NSData else {
+            guard componentType is NSData.Type else {
                 return nil
             }
 
-            return data as? T
+            return unsafeCast(contentsOf: component, to: NSData.self) as? T
         }
 
-        guard componentType is NSNumber.Type, let number = component as? NSNumber else {
+        guard componentType is NSNumber.Type else {
             return nil
         }
 
-        return number as? T
+        return unsafeCast(contentsOf: component, to: NSNumber.self) as? T
     }
 
     // The date is made here rather than in the caller, as a resilient Foundation value in a function
