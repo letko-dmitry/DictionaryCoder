@@ -424,7 +424,7 @@ extension DictionaryValueDecoder {
                 let convertedKey = closure(keyPath).stringValue
 
                 if convertedComponents.index(forKey: convertedKey) == nil {
-                    convertedComponents[convertedKey] = component
+                    convertedComponents.updateValue(component, forKey: convertedKey)
                 }
             }
 
