@@ -264,13 +264,15 @@ extension DictionaryValueDecoder {
             return try decodeConvertedNumber(from: nil, at: position())
         }
 
-        let componentType = Swift.type(of: component)
+        let componentType = storedType(of: component)
 
         if componentType == T.self {
             return unsafeCast(contentsOf: component, to: T.self)
         }
 
-        if let value = bridgeFoundationComponent(component, of: componentType, to: type) {
+        let valueType = valueType(of: component, storedAs: componentType)
+
+        if let value = bridgeFoundationComponent(component, of: valueType, to: type) {
             return value
         }
 

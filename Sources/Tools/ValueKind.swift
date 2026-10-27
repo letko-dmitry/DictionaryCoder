@@ -22,6 +22,25 @@ internal func unsafeCast<Value>(contentsOf existential: Any, to type: Value.Type
     return read(existential)
 }
 
+/// The type that an existential holds its value as, which is read from the existential rather than looked up
+/// at run time, as `type(of:)` does. It is the type of the value itself, unless the value is an object held
+/// as `AnyObject`, as Swift collections bridged from Foundation ones hold their elements, or as a superclass.
+@inline(always)
+internal func storedType(of existential: Any) -> Any.Type {
+    @inline(always)
+    func type<T>(_ value: T) -> Any.Type {
+        T.self
+    }
+
+    return type(existential)
+}
+
+/// The type of the value of an existential, which is looked up at run time only for an object held as `AnyObject`.
+@inline(always)
+internal func valueType(of existential: Any, storedAs storedType: Any.Type) -> Any.Type {
+    storedType == AnyObject.self ? type(of: existential) : storedType
+}
+
 internal struct PrimitiveArrayTypes {
 
     // MARK: - Type Properties

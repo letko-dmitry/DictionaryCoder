@@ -35,12 +35,12 @@ internal enum DictionaryKeyedComponents {
 
     // Takes the component unwrapped and borrowed, as unwrapping or passing an existential owned copies it.
     internal init?(_ component: borrowing Any) {
-        let componentType = type(of: component)
+        let componentType = storedType(of: component)
 
         // Checking the type first, as `as? [String: Any]` would bridge a Foundation dictionary as a whole.
         if componentType == [String: Any].self {
             self = .native(unsafeCast(contentsOf: component, to: [String: Any].self))
-        } else if componentType is NSDictionary.Type {
+        } else if valueType(of: component, storedAs: componentType) is NSDictionary.Type {
             self = .foundation(unsafeCast(contentsOf: component, to: NSDictionary.self))
         } else if let components = copy component as? [String: Any] {
             self = .native(components)

@@ -454,6 +454,28 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
         assertDecoderSucceeds(decoding: DecodableStruct.self, from: dictionary)
     }
 
+    func testThatDecoderSucceedsWhenDecodingFoundationObjectsHeldAsSuperclasses() {
+        struct DecodableStruct: Decodable, Equatable {
+            let int: Int
+            let string: String
+            let dictionary: [String: Int]
+            let array: [Int]
+        }
+
+        // An object held as one of its superclasses is told apart by its own type.
+        let objects: [String: NSObject] = [
+            "int": NSNumber(value: 1),
+            "string": NSString(string: "foo"),
+            "dictionary": NSDictionary(dictionary: ["foo": 2]),
+            "array": NSArray(array: [3])
+        ]
+
+        assertDecoderSucceeds(
+            decoding: DecodableStruct(int: 1, string: "foo", dictionary: ["foo": 2], array: [3]),
+            from: objects
+        )
+    }
+
     func testThatDecoderSucceedsWhenDecodingStructWithURL() {
         struct DecodableStruct: Decodable, Equatable {
             let foobar: URL?

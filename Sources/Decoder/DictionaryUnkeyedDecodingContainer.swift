@@ -39,11 +39,11 @@ internal enum DictionaryUnkeyedComponents {
 
     // Takes the component unwrapped and borrowed, as unwrapping or passing an existential owned copies it.
     internal init?(_ component: borrowing Any) {
-        let componentType = type(of: component)
+        let componentType = storedType(of: component)
 
         if componentType == [Any].self {
             self = .native(unsafeCast(contentsOf: component, to: [Any].self))
-        } else if componentType is NSArray.Type {
+        } else if valueType(of: component, storedAs: componentType) is NSArray.Type {
             self = .foundation(unsafeCast(contentsOf: component, to: NSArray.self))
         } else if let components = copy component as? [Any?] {
             self = .optionals(components)
@@ -62,7 +62,7 @@ internal enum DictionaryUnkeyedComponents {
 
             // Optional elements, such as `nil` that the encoder writes, are kept in an array of `Any` wrapped,
             // so they are unwrapped as converting the array to `[Any?]` would.
-            if type(of: component) == Optional<Any>.self {
+            if storedType(of: component) == Optional<Any>.self {
                 return Self.cast(component, to: Any?.self)
             }
 
