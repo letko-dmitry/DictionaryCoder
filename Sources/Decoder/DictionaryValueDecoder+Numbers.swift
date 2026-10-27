@@ -26,15 +26,18 @@ extension DictionaryValueDecoder {
         CFGetTypeID(number) == CFBooleanGetTypeID()
     }
 
-    internal func decodeDecimal(from component: Any?, at key: @autoclosure () -> CodingPathKey) throws -> Decimal {
+    internal func decodeDecimal(
+        from component: consuming Any?,
+        at key: @autoclosure () -> CodingPathKey
+    ) throws -> Decimal {
         let strategy = context.options.decimalDecodingStrategy
 
         if strategy.contains(.number) {
-            if let decimal = component as? Decimal {
+            if let decimal = copy component as? Decimal {
                 return decimal
             }
 
-            if let number = component as? NSNumber, !isBoolean(number) {
+            if let number = copy component as? NSNumber, !isBoolean(number) {
                 return number.decimalValue
             }
         }
@@ -43,7 +46,7 @@ extension DictionaryValueDecoder {
             throw DecodingError.invalidComponent(component, of: Decimal.self, at: position(at: key()))
         }
 
-        return try decodeNestedValue(from: component, at: key()) { decoder in
+        return try decodeNestedValue(from: consume component, at: key()) { decoder in
             try Decimal(from: decoder)
         }
     }

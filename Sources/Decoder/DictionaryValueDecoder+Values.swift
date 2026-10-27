@@ -36,7 +36,7 @@ extension DictionaryValueDecoder {
     @inline(never)
     private func decodeDate<T: Decodable>(
         _ type: T.Type,
-        from component: Any?,
+        from component: consuming Any?,
         at key: @autoclosure () -> CodingPathKey
     ) throws -> T {
         let date: Date
@@ -46,24 +46,24 @@ extension DictionaryValueDecoder {
             // What `Date.init(from:)` decodes, without a decoder of its own.
             let timeInterval = try decodeFloatingPoint(
                 Double.self,
-                from: component,
+                from: consume component,
                 at: position(at: key())
             )
 
             date = Date(timeIntervalSinceReferenceDate: timeInterval)
 
         case .secondsSince1970:
-            date = Date(timeIntervalSince1970: try decodePrimitive(from: component, at: position(at: key())))
+            date = Date(timeIntervalSince1970: try decodePrimitive(from: consume component, at: position(at: key())))
 
         case .millisecondsSince1970:
-            let milliseconds: Double = try decodePrimitive(from: component, at: position(at: key()))
+            let milliseconds: Double = try decodePrimitive(from: consume component, at: position(at: key()))
 
             date = Date(timeIntervalSince1970: milliseconds / 1000.0)
 
         case let .iso8601(style):
             let formattedDate = try decodePrimitive(
                 String.self,
-                from: component,
+                from: consume component,
                 at: position(at: key())
             )
 
@@ -79,7 +79,7 @@ extension DictionaryValueDecoder {
         case let .formatted(dateFormatter):
             let formattedDate = try decodePrimitive(
                 String.self,
-                from: component,
+                from: consume component,
                 at: position(at: key())
             )
 
@@ -93,7 +93,7 @@ extension DictionaryValueDecoder {
             date = formattedDate
 
         case let .custom(closure):
-            date = try decodeNestedValue(from: component, at: key(), decoding: closure)
+            date = try decodeNestedValue(from: consume component, at: key(), decoding: closure)
         }
 
         return unsafeCast(date, to: T.self)
@@ -102,19 +102,19 @@ extension DictionaryValueDecoder {
     @inline(never)
     private func decodeData<T: Decodable>(
         _ type: T.Type,
-        from component: Any?,
+        from component: consuming Any?,
         at key: @autoclosure () -> CodingPathKey
     ) throws -> T {
         switch context.options.dataDecodingStrategy {
         case .deferredToData:
-            return try decodeNestedValue(from: component, at: key()) { decoder in
+            return try decodeNestedValue(from: consume component, at: key()) { decoder in
                 try T(from: decoder)
             }
 
         case .base64:
             let base64EncodedString = try decodePrimitive(
                 String.self,
-                from: component,
+                from: consume component,
                 at: position(at: key())
             )
 
@@ -128,26 +128,26 @@ extension DictionaryValueDecoder {
             return unsafeCast(data, to: T.self)
 
         case .blob:
-            let data = try decodePrimitive(Data.self, from: component, at: position(at: key()))
+            let data = try decodePrimitive(Data.self, from: consume component, at: position(at: key()))
 
             return unsafeCast(data, to: T.self)
 
         case let .custom(closure):
-            return unsafeCast(try decodeNestedValue(from: component, at: key(), decoding: closure), to: T.self)
+            return unsafeCast(try decodeNestedValue(from: consume component, at: key(), decoding: closure), to: T.self)
         }
     }
 
     @inline(never)
     private func decodeURL<T: Decodable>(
         _ type: T.Type,
-        from component: Any?,
+        from component: consuming Any?,
         at key: @autoclosure () -> CodingPathKey
     ) throws -> T {
-        if let url = component as? URL {
+        if let url = copy component as? URL {
             return unsafeCast(url, to: T.self)
         }
 
-        let string: String = try decodePrimitive(from: component, at: position(at: key()))
+        let string: String = try decodePrimitive(from: consume component, at: position(at: key()))
 
         guard let url = URL(string: string) else {
             throw DecodingError.dataCorrupted(
@@ -167,7 +167,7 @@ extension DictionaryValueDecoder {
         from component: consuming Any?,
         at position: @autoclosure () -> CodingPosition
     ) throws -> T {
-        try decodePrimitive(type, from: component, at: position())
+        try decodePrimitive(type, from: consume component, at: position())
     }
 
     @inline(never)
@@ -183,26 +183,26 @@ extension DictionaryValueDecoder {
         if typeIdentifier != state.nestedValueType {
             switch ValueKind(of: type) {
             case .double:
-                let value = try decodeFloatingPoint(Double.self, from: component, at: position(at: key()))
+                let value = try decodeFloatingPoint(Double.self, from: consume component, at: position(at: key()))
 
                 return unsafeCast(value, to: T.self)
 
             case .float:
-                let value = try decodeFloatingPoint(Float.self, from: component, at: position(at: key()))
+                let value = try decodeFloatingPoint(Float.self, from: consume component, at: position(at: key()))
 
                 return unsafeCast(value, to: T.self)
 
             case .date:
-                return try decodeDate(type, from: component, at: key())
+                return try decodeDate(type, from: consume component, at: key())
 
             case .data:
-                return try decodeData(type, from: component, at: key())
+                return try decodeData(type, from: consume component, at: key())
 
             case .url:
-                return try decodeURL(type, from: component, at: key())
+                return try decodeURL(type, from: consume component, at: key())
 
             case .decimal:
-                return unsafeCast(try decodeDecimal(from: component, at: key()), to: T.self)
+                return unsafeCast(try decodeDecimal(from: consume component, at: key()), to: T.self)
 
             case .int128:
                 if #available(watchOS 11.0, *) {
@@ -231,7 +231,7 @@ extension DictionaryValueDecoder {
             }
         }
 
-        return try decodeNestedValue(from: component, at: key()) { decoder in
+        return try decodeNestedValue(from: consume component, at: key()) { decoder in
             try T(from: decoder)
         }
     }
@@ -304,7 +304,7 @@ extension DictionaryValueDecoder {
             }
         }
 
-        let number: T = try decodePrimitive(from: component, at: position())
+        let number: T = try decodePrimitive(from: consume component, at: position())
 
         guard number.isFinite else {
             throw DecodingError.nonConformingNumber(number, at: position())
@@ -325,10 +325,10 @@ extension DictionaryValueDecoder {
         // Primitive values are decoded in place,
         // so that an array of numbers, for example, does not create a nested decoder for each element.
         if PrimitiveTypes.contains(type) {
-            return try decodePrimitiveValue(type, from: component, at: position(at: key()))
+            return try decodePrimitiveValue(type, from: consume component, at: position(at: key()))
         }
 
-        return try decodeTypedValue(type, from: component, at: key())
+        return try decodeTypedValue(type, from: consume component, at: key())
     }
 }
 
