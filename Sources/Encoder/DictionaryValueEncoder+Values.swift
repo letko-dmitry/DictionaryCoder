@@ -47,7 +47,8 @@ extension DictionaryValueEncoder {
             return unsafeCast(value, to: Data.self).base64EncodedString()
 
         case .blob:
-            return value
+            // Copied as `Data` rather than through the generic type, which goes through its value witnesses.
+            return unsafeCast(value, to: Data.self)
 
         case let .custom(closure):
             let data = unsafeCast(value, to: Data.self)
