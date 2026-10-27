@@ -639,6 +639,38 @@ final class DictionaryEncoderTests: XCTestCase, DictionaryEncoderTesting {
         assertEncoderSucceeds(encoding: ["foo": Date(timeIntervalSince1970: 1)], expecting: ["foo": 1.0])
     }
 
+    func testThatEncoderSucceedsWhenEncodingDuringCall() {
+        struct EncodableStruct: Encodable {
+            enum CodingKeys: String, CodingKey {
+                case foo
+                case bar
+                case baz
+            }
+
+            let value: Int
+            let dictionaryEncoder: DictionaryEncoder
+
+            func encode(to encoder: Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+
+                try container.encode(value, forKey: .foo)
+
+                // Encodes another value with the encoder that encodes this value, which must not share its encoders.
+                let dictionary = try dictionaryEncoder.encode(["bar": value])
+
+                try container.encode(dictionary["bar"] as? Int, forKey: .bar)
+                try container.encode(value + 1, forKey: .baz)
+            }
+        }
+
+        for value in [1, 3] {
+            assertEncoderSucceeds(
+                encoding: EncodableStruct(value: value, dictionaryEncoder: encoder),
+                expecting: ["foo": value, "bar": value, "baz": value + 1]
+            )
+        }
+    }
+
     func testThatEncoderSucceedsWhenEncodingConcurrently() throws {
         struct EncodableStruct: Encodable {
             let foo: Int

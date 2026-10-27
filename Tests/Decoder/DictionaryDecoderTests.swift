@@ -1028,6 +1028,53 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
         decoder.userInfo = [:]
     }
 
+    func testThatDecoderSucceedsWhenDecodingDuringCall() {
+        struct NestedStruct: Decodable, Equatable {
+            let bar: Int
+        }
+
+        struct DecodableStruct: Decodable, Equatable {
+            enum CodingKeys: String, CodingKey {
+                case foo
+                case baz
+            }
+
+            let foo: Int
+            let nested: NestedStruct
+            let baz: Int
+
+            init(foo: Int, nested: NestedStruct, baz: Int) {
+                self.foo = foo
+                self.nested = nested
+                self.baz = baz
+            }
+
+            init(from decoder: Decoder) throws {
+                let dictionaryDecoder = try XCTUnwrap(decoder.userInfo[.dictionaryDecoder] as? DictionaryDecoder)
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                let foo = try container.decode(Int.self, forKey: .foo)
+
+                // Decodes another value with the decoder that decodes this value, which must not share its decoders.
+                nested = try dictionaryDecoder.decode(NestedStruct.self, from: ["bar": foo])
+
+                self.foo = foo
+                baz = try container.decode(Int.self, forKey: .baz)
+            }
+        }
+
+        decoder.userInfo = [.dictionaryDecoder: decoder]
+
+        for foo in [1, 3] {
+            assertDecoderSucceeds(
+                decoding: DecodableStruct(foo: foo, nested: NestedStruct(bar: foo), baz: foo + 1),
+                from: ["foo": foo, "baz": foo + 1]
+            )
+        }
+
+        // Breaks the reference cycle of the decoder through its user info.
+        decoder.userInfo = [:]
+    }
+
     func testThatDecoderSucceedsWhenDecodingConcurrently() throws {
         struct DecodableStruct: Decodable, Equatable {
             let foo: Int
