@@ -130,15 +130,7 @@ public final class DictionaryDecoder: Sendable {
             return
         }
 
-        // The kept decoders drop their components, so that they do not keep the decoded dictionary.
-        var nextDecoder: DictionaryValueDecoder? = decoder
-
-        while let currentDecoder = nextDecoder {
-            currentDecoder.component = nil
-            currentDecoder.state.keyedComponents = nil
-            currentDecoder.state.unkeyedComponents = nil
-            nextDecoder = currentDecoder.state.reusableDecoder
-        }
+        decoder.dropComponents()
 
         stateLock.withLockUnchecked { [decoder] state in
             // A decoder of options changed since is dropped, as is one of a call that ran at the same time.

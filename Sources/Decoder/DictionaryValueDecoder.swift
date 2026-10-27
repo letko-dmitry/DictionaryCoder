@@ -132,6 +132,20 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
         DictionaryValueDecoder(component: component, context: context, parent: self, key: key)
     }
 
+    /// Drops the components of the decoder and of the decoders that it keeps,
+    /// so that the decoders kept for the next call do not keep the decoded dictionary.
+    @inline(always)
+    internal func dropComponents() {
+        var nextDecoder: DictionaryValueDecoder? = self
+
+        while let currentDecoder = nextDecoder {
+            currentDecoder.component = nil
+            currentDecoder.state.keyedComponents = nil
+            currentDecoder.state.unkeyedComponents = nil
+            nextDecoder = currentDecoder.state.reusableDecoder
+        }
+    }
+
     // MARK: - Decoder
 
     internal func container<Key: CodingKey>(keyedBy keyType: Key.Type) throws -> KeyedDecodingContainer<Key> {
