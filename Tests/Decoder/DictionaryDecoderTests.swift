@@ -1059,6 +1059,34 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
         XCTAssertEqual(mismatches.count, 0)
     }
 
+    func testThatDecoderReusesRootDecoderBetweenCalls() throws {
+        final class SeenDecoders: @unchecked Sendable {
+            weak var lastDecoder: AnyObject?
+            var reuseCount = 0
+        }
+
+        struct DecodableStruct: Decodable {
+            init(from decoder: Decoder) throws {
+                let seenDecoders = try XCTUnwrap(decoder.userInfo[.seenDecoders] as? SeenDecoders)
+
+                if seenDecoders.lastDecoder === decoder as AnyObject {
+                    seenDecoders.reuseCount += 1
+                }
+
+                seenDecoders.lastDecoder = decoder as AnyObject
+            }
+        }
+
+        let seenDecoders = SeenDecoders()
+        let decoder = DictionaryDecoder(userInfo: [.seenDecoders: seenDecoders])
+
+        for _ in 0..<3 {
+            _ = try decoder.decode(DecodableStruct.self, from: [:])
+        }
+
+        XCTAssertEqual(seenDecoders.reuseCount, 2)
+    }
+
     func testThatDecoderDoesNotKeepDecodedDictionaries() throws {
         final class Component {}
 
@@ -1453,4 +1481,5 @@ extension CodingUserInfoKey {
 
     fileprivate static let keptDecoders = Self(rawValue: "keptDecoders")!
     fileprivate static let dictionaryDecoder = Self(rawValue: "dictionaryDecoder")!
+    fileprivate static let seenDecoders = Self(rawValue: "seenDecoders")!
 }

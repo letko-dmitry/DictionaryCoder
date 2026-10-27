@@ -670,6 +670,41 @@ final class DictionaryEncoderTests: XCTestCase, DictionaryEncoderTesting {
         XCTAssertEqual(mismatches.count, 0)
     }
 
+    func testThatEncoderReusesRootEncoderBetweenCalls() throws {
+        final class SeenEncoders {
+            weak var lastEncoder: AnyObject?
+            var reuseCount = 0
+        }
+
+        struct EncodableStruct: Encodable {
+            enum CodingKeys: String, CodingKey {
+                case foo
+            }
+
+            let seenEncoders: SeenEncoders
+
+            func encode(to encoder: Encoder) throws {
+                if seenEncoders.lastEncoder === encoder as AnyObject {
+                    seenEncoders.reuseCount += 1
+                }
+
+                seenEncoders.lastEncoder = encoder as AnyObject
+
+                var container = encoder.container(keyedBy: CodingKeys.self)
+
+                try container.encode(true, forKey: .foo)
+            }
+        }
+
+        let seenEncoders = SeenEncoders()
+
+        for _ in 0..<3 {
+            _ = try encoder.encode(EncodableStruct(seenEncoders: seenEncoders))
+        }
+
+        XCTAssertEqual(seenEncoders.reuseCount, 2)
+    }
+
     func testThatEncoderFailsWhenEncodingArray() {
         let value = [1, 2, 3]
 

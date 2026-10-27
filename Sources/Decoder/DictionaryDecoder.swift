@@ -101,7 +101,8 @@ public final class DictionaryDecoder: Sendable {
 
         let decoder: DictionaryValueDecoder
 
-        if let reusableDecoder {
+        // Moved out of the binding, which would refer to the decoder to the end of the call and keep it from reuse.
+        if let reusableDecoder = consume reusableDecoder {
             reusableDecoder.component = dictionary
             decoder = reusableDecoder
         } else {

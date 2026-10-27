@@ -106,7 +106,8 @@ public final class DictionaryEncoder: Sendable {
             (state.reusableEncoder.take(), state.context)
         }
 
-        let encoder = reusableEncoder ?? DictionaryValueEncoder(context: context, parent: nil, key: .empty)
+        // Moved out of the binding, which would refer to the encoder to the end of the call and keep it from reuse.
+        let encoder = (consume reusableEncoder) ?? DictionaryValueEncoder(context: context, parent: nil, key: .empty)
 
         do {
             try encoding(encoder)
