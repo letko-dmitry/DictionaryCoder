@@ -1,6 +1,6 @@
 import Foundation
 
-/// The options and user info of one encoding, shared by the encoders of all its values.
+/// The options and user info of a `DictionaryEncoder`, shared by the encoders of its values until the options change.
 internal final class DictionaryEncodingContext: Sendable {
 
     // MARK: - Instance Properties

@@ -1,4 +1,4 @@
-/// The options and user info of one decoding, shared by the decoders of all its values.
+/// The options and user info of a `DictionaryDecoder`, shared by the decoders of its values until the options change.
 internal final class DictionaryDecodingContext: Sendable {
 
     // MARK: - Instance Properties

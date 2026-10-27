@@ -462,7 +462,6 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
             let array: [Int]
         }
 
-        // An object held as one of its superclasses is told apart by its own type.
         let objects: [String: NSObject] = [
             "int": NSNumber(value: 1),
             "string": NSString(string: "foo"),
