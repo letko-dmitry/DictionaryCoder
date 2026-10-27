@@ -139,7 +139,7 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
             throw DecodingError.keyedContainerTypeMismatch(at: self, component: component)
         }
 
-        state.keyedComponents = convertingKeys(of: components)
+        state.keyedComponents = convertingKeys(of: consume components)
 
         return KeyedDecodingContainer(DictionaryKeyedDecodingContainer<Key>(decoder: self))
     }
