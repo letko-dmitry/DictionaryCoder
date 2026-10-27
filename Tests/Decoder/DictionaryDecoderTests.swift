@@ -1,5 +1,7 @@
 import XCTest
 
+import struct os.OSAllocatedUnfairLock
+
 @testable import DictionaryCoder
 
 final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
@@ -1081,28 +1083,18 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
             let bar: [Int]
         }
 
-        final class Mismatches: @unchecked Sendable {
-            private let lock = NSLock()
-
-            private(set) var count = 0
-
-            func add() {
-                lock.withLock { count += 1 }
-            }
-        }
-
         let decoder = try XCTUnwrap(self.decoder)
-        let mismatches = Mismatches()
+        let mismatchCount = OSAllocatedUnfairLock(initialState: 0)
 
         DispatchQueue.concurrentPerform(iterations: 1000) { index in
             let value = try? decoder.decode(DecodableStruct.self, from: ["foo": index, "bar": [index, -index]])
 
             if value != DecodableStruct(foo: index, bar: [index, -index]) {
-                mismatches.add()
+                mismatchCount.withLock { $0 += 1 }
             }
         }
 
-        XCTAssertEqual(mismatches.count, 0)
+        XCTAssertEqual(mismatchCount.withLock { $0 }, 0)
     }
 
     func testThatDecoderReusesRootDecoderBetweenCalls() throws {
