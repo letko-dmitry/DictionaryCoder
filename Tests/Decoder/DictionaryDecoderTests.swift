@@ -921,6 +921,151 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
         XCTAssertEqual(keptDecoders.previousValues, [0, 1])
     }
 
+    func testThatDecoderSucceedsWhenDecodingRootValuesThatKeepTheirDecoders() throws {
+        final class KeptDecoders: @unchecked Sendable {
+            var decoders: [Decoder] = []
+            var previousValues: [Int] = []
+        }
+
+        struct DecodableStruct: Decodable, Equatable {
+            enum CodingKeys: String, CodingKey {
+                case foo
+            }
+
+            let value: Int
+
+            init(value: Int) {
+                self.value = value
+            }
+
+            init(from decoder: Decoder) throws {
+                let keptDecoders = try XCTUnwrap(decoder.userInfo[.keptDecoders] as? KeptDecoders)
+
+                // Reads through the decoder of the previous call, which must not decode this value.
+                if let previousDecoder = keptDecoders.decoders.last {
+                    let previousContainer = try previousDecoder.container(keyedBy: CodingKeys.self)
+
+                    keptDecoders.previousValues.append(try previousContainer.decode(Int.self, forKey: .foo))
+                }
+
+                value = try decoder.container(keyedBy: CodingKeys.self).decode(Int.self, forKey: .foo)
+
+                keptDecoders.decoders.append(decoder)
+            }
+        }
+
+        let keptDecoders = KeptDecoders()
+        let decoder = DictionaryDecoder(userInfo: [.keptDecoders: keptDecoders])
+
+        for value in 0..<3 {
+            let decodedValue = try decoder.decode(DecodableStruct.self, from: ["foo": value])
+
+            XCTAssertEqual(decodedValue, DecodableStruct(value: value))
+        }
+
+        XCTAssertEqual(keptDecoders.previousValues, [0, 1])
+    }
+
+    func testThatDecoderSucceedsWhenOptionsChangeBetweenCalls() {
+        let dictionary = ["foo": 1.0]
+
+        assertDecoderSucceeds(decoding: ["foo": Date(timeIntervalSinceReferenceDate: 1)], from: dictionary)
+
+        decoder.dateDecodingStrategy = .secondsSince1970
+
+        assertDecoderSucceeds(decoding: ["foo": Date(timeIntervalSince1970: 1)], from: dictionary)
+    }
+
+    func testThatDecoderSucceedsWhenOptionsChangeDuringCall() {
+        struct DecodableStruct: Decodable, Equatable {
+            enum CodingKeys: String, CodingKey {
+                case foo
+            }
+
+            let foo: Bool
+
+            init(foo: Bool) {
+                self.foo = foo
+            }
+
+            init(from decoder: Decoder) throws {
+                let dictionaryDecoder = try XCTUnwrap(decoder.userInfo[.dictionaryDecoder] as? DictionaryDecoder)
+
+                // Changes the options of the decoder that decodes this value, which apply from the next call.
+                dictionaryDecoder.dateDecodingStrategy = .secondsSince1970
+
+                foo = try decoder.container(keyedBy: CodingKeys.self).decode(Bool.self, forKey: .foo)
+            }
+        }
+
+        decoder.userInfo = [.dictionaryDecoder: decoder]
+
+        assertDecoderSucceeds(decoding: DecodableStruct(foo: true), from: ["foo": true])
+        assertDecoderSucceeds(decoding: ["foo": Date(timeIntervalSince1970: 1)], from: ["foo": 1.0])
+
+        // Breaks the reference cycle of the decoder through its user info.
+        decoder.userInfo = [:]
+    }
+
+    func testThatDecoderSucceedsWhenDecodingConcurrently() throws {
+        struct DecodableStruct: Decodable, Equatable {
+            let foo: Int
+            let bar: [Int]
+        }
+
+        final class Mismatches: @unchecked Sendable {
+            private let lock = NSLock()
+
+            private(set) var count = 0
+
+            func add() {
+                lock.withLock { count += 1 }
+            }
+        }
+
+        let decoder = try XCTUnwrap(self.decoder)
+        let mismatches = Mismatches()
+
+        DispatchQueue.concurrentPerform(iterations: 1000) { index in
+            let value = try? decoder.decode(DecodableStruct.self, from: ["foo": index, "bar": [index, -index]])
+
+            if value != DecodableStruct(foo: index, bar: [index, -index]) {
+                mismatches.add()
+            }
+        }
+
+        XCTAssertEqual(mismatches.count, 0)
+    }
+
+    func testThatDecoderDoesNotKeepDecodedDictionaries() throws {
+        final class Component {}
+
+        struct DecodableStruct: Decodable {
+            struct NestedStruct: Decodable {
+                let bar: Int
+            }
+
+            let foo: NestedStruct
+            let baz: [NestedStruct]
+        }
+
+        weak var weakComponent: Component?
+
+        do {
+            let component = Component()
+
+            weakComponent = component
+
+            // The decoders kept for the next call decoded the dictionaries that hold the component last.
+            _ = try decoder.decode(
+                DecodableStruct.self,
+                from: ["foo": ["bar": 1, "qux": component], "baz": [["bar": 2, "qux": component]]]
+            )
+        }
+
+        XCTAssertNil(weakComponent)
+    }
+
     func testThatDecoderFailsWhenDecodingArray() {
         let dictionary = ["foobar": 123]
 
@@ -1285,4 +1430,5 @@ extension CodingUserInfoKey {
     // MARK: - Type Properties
 
     fileprivate static let keptDecoders = Self(rawValue: "keptDecoders")!
+    fileprivate static let dictionaryDecoder = Self(rawValue: "dictionaryDecoder")!
 }

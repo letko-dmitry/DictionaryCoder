@@ -4,39 +4,53 @@ import struct os.OSAllocatedUnfairLock
 
 public final class DictionaryDecoder: Sendable {
 
+    // MARK: - Nested Types
+
+    private struct State {
+
+        // MARK: - Instance Properties
+
+        /// The context of the current options and user info, which every call shares,
+        /// so that a call takes a reference to it rather than a copy of the options and an allocation.
+        var context: DictionaryDecodingContext
+
+        /// The decoder of the last root value, kept for the next call along with the decoders of nested values
+        /// that it keeps, so that a call allocates no decoders.
+        var reusableDecoder: DictionaryValueDecoder?
+    }
+
     // MARK: - Instance Properties
 
-    // The context of the current options and user info, which every call shares under one lock,
-    // so that a call takes a reference to it rather than a copy of the options and an allocation.
-    private let contextLock: OSAllocatedUnfairLock<DictionaryDecodingContext>
+    // Unchecked, as a decoder is used by one call at a time, which takes it out of the state.
+    private let stateLock: OSAllocatedUnfairLock<State>
 
     public var dateDecodingStrategy: DictionaryDateDecodingStrategy {
-        get { contextLock.withLock(\.options.dateDecodingStrategy) }
+        get { stateLock.withLockUnchecked(\.context.options.dateDecodingStrategy) }
         set { updateOptions { $0.dateDecodingStrategy = newValue } }
     }
 
     public var dataDecodingStrategy: DictionaryDataDecodingStrategy {
-        get { contextLock.withLock(\.options.dataDecodingStrategy) }
+        get { stateLock.withLockUnchecked(\.context.options.dataDecodingStrategy) }
         set { updateOptions { $0.dataDecodingStrategy = newValue } }
     }
 
     public var decimalDecodingStrategy: DictionaryDecimalDecodingStrategy {
-        get { contextLock.withLock(\.options.decimalDecodingStrategy) }
+        get { stateLock.withLockUnchecked(\.context.options.decimalDecodingStrategy) }
         set { updateOptions { $0.decimalDecodingStrategy = newValue } }
     }
 
     public var nonConformingFloatDecodingStrategy: DictionaryNonConformingFloatDecodingStrategy {
-        get { contextLock.withLock(\.options.nonConformingFloatDecodingStrategy) }
+        get { stateLock.withLockUnchecked(\.context.options.nonConformingFloatDecodingStrategy) }
         set { updateOptions { $0.nonConformingFloatDecodingStrategy = newValue } }
     }
 
     public var keyDecodingStrategy: DictionaryKeyDecodingStrategy {
-        get { contextLock.withLock(\.options.keyDecodingStrategy) }
+        get { stateLock.withLockUnchecked(\.context.options.keyDecodingStrategy) }
         set { updateOptions { $0.keyDecodingStrategy = newValue } }
     }
 
     public var userInfo: [CodingUserInfoKey: Sendable] {
-        get { contextLock.withLock(\.options.userInfo) }
+        get { stateLock.withLockUnchecked(\.context.options.userInfo) }
         set { updateOptions { $0.userInfo = newValue } }
     }
 
@@ -59,35 +73,79 @@ public final class DictionaryDecoder: Sendable {
             userInfo: userInfo
         )
 
-        self.contextLock = OSAllocatedUnfairLock(initialState: DictionaryDecodingContext(options: options))
+        self.stateLock = OSAllocatedUnfairLock(
+            uncheckedState: State(context: DictionaryDecodingContext(options: options), reusableDecoder: nil)
+        )
     }
 
     // MARK: - Instance Methods
 
-    private func updateOptions(_ update: @Sendable (_ options: inout DictionaryDecodingOptions) -> Void) {
-        contextLock.withLock { context in
-            var options = context.options
+    private func updateOptions(_ update: (_ options: inout DictionaryDecodingOptions) -> Void) {
+        stateLock.withLockUnchecked { state in
+            var options = state.context.options
 
             update(&options)
 
-            context = DictionaryDecodingContext(options: options)
+            state.context = DictionaryDecodingContext(options: options)
+            state.reusableDecoder = nil
         }
     }
 
-    private func rootDecoder(for dictionary: [String: Any]) -> DictionaryValueDecoder {
-        DictionaryValueDecoder(
-            component: dictionary,
-            context: contextLock.withLock(\.self),
-            parent: nil,
-            key: .empty
-        )
+    private func decodeRootValue<T>(
+        from dictionary: [String: Any],
+        decoding: (_ decoder: DictionaryValueDecoder) throws -> T
+    ) throws -> T {
+        let (reusableDecoder, context) = stateLock.withLockUnchecked { state in
+            (state.reusableDecoder.take(), state.context)
+        }
+
+        let decoder: DictionaryValueDecoder
+
+        if let reusableDecoder {
+            reusableDecoder.component = dictionary
+            decoder = reusableDecoder
+        } else {
+            decoder = DictionaryValueDecoder(component: dictionary, context: context, parent: nil, key: .empty)
+        }
+
+        let value = try decoding(decoder)
+
+        keepForReuse(consume decoder)
+
+        return value
+    }
+
+    private func keepForReuse(_ decoder: consuming DictionaryValueDecoder) {
+        // A decoder that anything else still refers to, such as a stored container, is left to it.
+        guard isKnownUniquelyReferenced(&decoder) else {
+            return
+        }
+
+        // The kept decoders drop their components, so that they do not keep the decoded dictionary.
+        var nextDecoder: DictionaryValueDecoder? = decoder
+
+        while let currentDecoder = nextDecoder {
+            currentDecoder.component = nil
+            currentDecoder.state.keyedComponents = nil
+            currentDecoder.state.unkeyedComponents = nil
+            nextDecoder = currentDecoder.state.reusableDecoder
+        }
+
+        stateLock.withLockUnchecked { [decoder] state in
+            // A decoder of options changed since is dropped, as is one of a call that ran at the same time.
+            if state.reusableDecoder == nil, decoder.context === state.context {
+                state.reusableDecoder = decoder
+            }
+        }
     }
 
     public func decode<T: Decodable>(
         _ type: T.Type = T.self,
         from dictionary: [String: Any]
     ) throws -> T {
-        try T(from: rootDecoder(for: dictionary))
+        try decodeRootValue(from: dictionary) { decoder in
+            try T(from: decoder)
+        }
     }
 
     @inline(always)
@@ -101,6 +159,8 @@ public final class DictionaryDecoder: Sendable {
         from dictionary: [String: Any],
         configuration: T.DecodingConfiguration
     ) throws -> T {
-        try T(from: rootDecoder(for: dictionary), configuration: configuration)
+        try decodeRootValue(from: dictionary) { decoder in
+            try T(from: decoder, configuration: configuration)
+        }
     }
 }

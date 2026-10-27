@@ -4,44 +4,58 @@ import struct os.OSAllocatedUnfairLock
 
 public final class DictionaryEncoder: Sendable {
 
+    // MARK: - Nested Types
+
+    private struct State {
+
+        // MARK: - Instance Properties
+
+        /// The context of the current options and user info, which every call shares,
+        /// so that a call takes a reference to it rather than a copy of the options and an allocation.
+        var context: DictionaryEncodingContext
+
+        /// The encoder of the last root value, kept for the next call along with the encoders of nested values
+        /// that it keeps, so that a call allocates no encoders.
+        var reusableEncoder: DictionaryValueEncoder?
+    }
+
     // MARK: - Instance Properties
 
-    // The context of the current options and user info, which every call shares under one lock,
-    // so that a call takes a reference to it rather than a copy of the options and an allocation.
-    private let contextLock: OSAllocatedUnfairLock<DictionaryEncodingContext>
+    // Unchecked, as an encoder is used by one call at a time, which takes it out of the state.
+    private let stateLock: OSAllocatedUnfairLock<State>
 
     public var dateEncodingStrategy: DictionaryDateEncodingStrategy {
-        get { contextLock.withLock(\.options.dateEncodingStrategy) }
+        get { stateLock.withLockUnchecked(\.context.options.dateEncodingStrategy) }
         set { updateOptions { $0.dateEncodingStrategy = newValue } }
     }
 
     public var dataEncodingStrategy: DictionaryDataEncodingStrategy {
-        get { contextLock.withLock(\.options.dataEncodingStrategy) }
+        get { stateLock.withLockUnchecked(\.context.options.dataEncodingStrategy) }
         set { updateOptions { $0.dataEncodingStrategy = newValue } }
     }
 
     public var decimalEncodingStrategy: DictionaryDecimalEncodingStrategy {
-        get { contextLock.withLock(\.options.decimalEncodingStrategy) }
+        get { stateLock.withLockUnchecked(\.context.options.decimalEncodingStrategy) }
         set { updateOptions { $0.decimalEncodingStrategy = newValue } }
     }
 
     public var nonConformingFloatEncodingStrategy: DictionaryNonConformingFloatEncodingStrategy {
-        get { contextLock.withLock(\.options.nonConformingFloatEncodingStrategy) }
+        get { stateLock.withLockUnchecked(\.context.options.nonConformingFloatEncodingStrategy) }
         set { updateOptions { $0.nonConformingFloatEncodingStrategy = newValue } }
     }
 
     public var nilEncodingStrategy: DictionaryNilEncodingStrategy {
-        get { contextLock.withLock(\.options.nilEncodingStrategy) }
+        get { stateLock.withLockUnchecked(\.context.options.nilEncodingStrategy) }
         set { updateOptions { $0.nilEncodingStrategy = newValue } }
     }
 
     public var keyEncodingStrategy: DictionaryKeyEncodingStrategy {
-        get { contextLock.withLock(\.options.keyEncodingStrategy) }
+        get { stateLock.withLockUnchecked(\.context.options.keyEncodingStrategy) }
         set { updateOptions { $0.keyEncodingStrategy = newValue } }
     }
 
     public var userInfo: [CodingUserInfoKey: Sendable] {
-        get { contextLock.withLock(\.options.userInfo) }
+        get { stateLock.withLockUnchecked(\.context.options.userInfo) }
         set { updateOptions { $0.userInfo = newValue } }
     }
 
@@ -66,18 +80,21 @@ public final class DictionaryEncoder: Sendable {
             userInfo: userInfo
         )
 
-        self.contextLock = OSAllocatedUnfairLock(initialState: DictionaryEncodingContext(options: options))
+        self.stateLock = OSAllocatedUnfairLock(
+            uncheckedState: State(context: DictionaryEncodingContext(options: options), reusableEncoder: nil)
+        )
     }
 
     // MARK: - Instance Methods
 
-    private func updateOptions(_ update: @Sendable (_ options: inout DictionaryEncodingOptions) -> Void) {
-        contextLock.withLock { context in
-            var options = context.options
+    private func updateOptions(_ update: (_ options: inout DictionaryEncodingOptions) -> Void) {
+        stateLock.withLockUnchecked { state in
+            var options = state.context.options
 
             update(&options)
 
-            context = DictionaryEncodingContext(options: options)
+            state.context = DictionaryEncodingContext(options: options)
+            state.reusableEncoder = nil
         }
     }
 
@@ -85,11 +102,11 @@ public final class DictionaryEncoder: Sendable {
         _ value: T,
         encoding: (_ encoder: Encoder) throws -> Void
     ) throws -> [String: Sendable] {
-        let encoder = DictionaryValueEncoder(
-            context: contextLock.withLock(\.self),
-            parent: nil,
-            key: .empty
-        )
+        let (reusableEncoder, context) = stateLock.withLockUnchecked { state in
+            (state.reusableEncoder.take(), state.context)
+        }
+
+        let encoder = reusableEncoder ?? DictionaryValueEncoder(context: context, parent: nil, key: .empty)
 
         do {
             try encoding(encoder)
@@ -99,11 +116,29 @@ public final class DictionaryEncoder: Sendable {
             throw error
         }
 
-        guard let dictionary = encoder.takeValue() as? [String: Sendable] else {
+        let encodedValue = encoder.takeValue()
+
+        keepForReuse(consume encoder)
+
+        guard let dictionary = encodedValue as? [String: Sendable] else {
             throw EncodingError.invalidRootValue(value)
         }
 
         return dictionary
+    }
+
+    private func keepForReuse(_ encoder: consuming DictionaryValueEncoder) {
+        // An encoder that anything else still refers to, such as a stored container, is left to it.
+        guard isKnownUniquelyReferenced(&encoder) else {
+            return
+        }
+
+        stateLock.withLockUnchecked { [encoder] state in
+            // An encoder of options changed since is dropped, as is one of a call that ran at the same time.
+            if state.reusableEncoder == nil, encoder.context === state.context {
+                state.reusableEncoder = encoder
+            }
+        }
     }
 
     public func encode<T: Encodable>(_ value: T) throws -> [String: Sendable] {

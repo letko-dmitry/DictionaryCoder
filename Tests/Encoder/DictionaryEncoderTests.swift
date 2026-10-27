@@ -568,6 +568,108 @@ final class DictionaryEncoderTests: XCTestCase, DictionaryEncoderTesting {
         assertEncoderSucceeds(encoding: ["foo": values], expecting: ["foo": [[0], [1], [2]]])
     }
 
+    func testThatEncoderSucceedsWhenEncodingValuesThatKeepTheirEncoders() {
+        final class KeptEncoders {
+            var encoders: [Encoder] = []
+        }
+
+        struct EncodableStruct: Encodable {
+            enum CodingKeys: String, CodingKey {
+                case foo
+            }
+
+            let value: Int
+            let keptEncoders: KeptEncoders
+
+            func encode(to encoder: Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+
+                try container.encode(value, forKey: .foo)
+
+                // Writes through the encoder of the previous call, which must not encode this value.
+                if let previousEncoder = keptEncoders.encoders.last {
+                    var previousContainer = previousEncoder.container(keyedBy: CodingKeys.self)
+
+                    try previousContainer.encode(-1, forKey: .foo)
+                }
+
+                keptEncoders.encoders.append(encoder)
+            }
+        }
+
+        let keptEncoders = KeptEncoders()
+
+        for value in 0..<3 {
+            assertEncoderSucceeds(
+                encoding: EncodableStruct(value: value, keptEncoders: keptEncoders),
+                expecting: ["foo": value]
+            )
+        }
+    }
+
+    func testThatEncoderSucceedsWhenOptionsChangeBetweenCalls() {
+        let date = Date(timeIntervalSince1970: 1)
+
+        assertEncoderSucceeds(encoding: ["foo": date], expecting: ["foo": date.timeIntervalSinceReferenceDate])
+
+        encoder.dateEncodingStrategy = .secondsSince1970
+
+        assertEncoderSucceeds(encoding: ["foo": date], expecting: ["foo": 1.0])
+    }
+
+    func testThatEncoderSucceedsWhenOptionsChangeDuringCall() {
+        struct EncodableStruct: Encodable {
+            enum CodingKeys: String, CodingKey {
+                case foo
+            }
+
+            let dictionaryEncoder: DictionaryEncoder
+
+            func encode(to encoder: Encoder) throws {
+                // Changes the options of the encoder that encodes this value, which apply from the next call.
+                dictionaryEncoder.dateEncodingStrategy = .secondsSince1970
+
+                var container = encoder.container(keyedBy: CodingKeys.self)
+
+                try container.encode(true, forKey: .foo)
+            }
+        }
+
+        assertEncoderSucceeds(encoding: EncodableStruct(dictionaryEncoder: encoder), expecting: ["foo": true])
+        assertEncoderSucceeds(encoding: ["foo": Date(timeIntervalSince1970: 1)], expecting: ["foo": 1.0])
+    }
+
+    func testThatEncoderSucceedsWhenEncodingConcurrently() throws {
+        struct EncodableStruct: Encodable {
+            let foo: Int
+            let bar: [Int]
+        }
+
+        final class Mismatches: @unchecked Sendable {
+            private let lock = NSLock()
+
+            private(set) var count = 0
+
+            func add() {
+                lock.withLock { count += 1 }
+            }
+        }
+
+        let encoder = try XCTUnwrap(self.encoder)
+        let mismatches = Mismatches()
+
+        DispatchQueue.concurrentPerform(iterations: 1000) { index in
+            let expectedDictionary: NSDictionary = ["foo": index, "bar": [index, -index]]
+            let dictionary = try? encoder.encode(EncodableStruct(foo: index, bar: [index, -index]))
+
+            if dictionary.map(NSDictionary.init(dictionary:)) != expectedDictionary {
+                mismatches.add()
+            }
+        }
+
+        XCTAssertEqual(mismatches.count, 0)
+    }
+
     func testThatEncoderFailsWhenEncodingArray() {
         let value = [1, 2, 3]
 
