@@ -1,14 +1,14 @@
 import Foundation
 
 /// The options and user info of one encoding, shared by the encoders of all its values.
-internal final class DictionaryEncodingContext {
+internal final class DictionaryEncodingContext: Sendable {
 
     // MARK: - Instance Properties
 
     internal let options: DictionaryEncodingOptions
 
     /// What `nil` is encoded as.
-    internal let encodedNil: Any?
+    internal let encodedNil: (any Sendable)?
 
     // MARK: - Initializers
 

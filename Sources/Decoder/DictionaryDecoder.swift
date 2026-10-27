@@ -6,37 +6,38 @@ public final class DictionaryDecoder: Sendable {
 
     // MARK: - Instance Properties
 
-    // The options and the user info are kept under one lock, which takes one allocation and one locking per call.
-    private let optionsLock: OSAllocatedUnfairLock<DictionaryDecodingOptions>
+    // The context of the current options and user info, which every call shares under one lock,
+    // so that a call takes a reference to it rather than a copy of the options and an allocation.
+    private let contextLock: OSAllocatedUnfairLock<DictionaryDecodingContext>
 
     public var dateDecodingStrategy: DictionaryDateDecodingStrategy {
-        get { optionsLock.withLock(\.dateDecodingStrategy) }
-        set { optionsLock.withLock { $0.dateDecodingStrategy = newValue } }
+        get { contextLock.withLock(\.options.dateDecodingStrategy) }
+        set { updateOptions { $0.dateDecodingStrategy = newValue } }
     }
 
     public var dataDecodingStrategy: DictionaryDataDecodingStrategy {
-        get { optionsLock.withLock(\.dataDecodingStrategy) }
-        set { optionsLock.withLock { $0.dataDecodingStrategy = newValue } }
+        get { contextLock.withLock(\.options.dataDecodingStrategy) }
+        set { updateOptions { $0.dataDecodingStrategy = newValue } }
     }
 
     public var decimalDecodingStrategy: DictionaryDecimalDecodingStrategy {
-        get { optionsLock.withLock(\.decimalDecodingStrategy) }
-        set { optionsLock.withLock { $0.decimalDecodingStrategy = newValue } }
+        get { contextLock.withLock(\.options.decimalDecodingStrategy) }
+        set { updateOptions { $0.decimalDecodingStrategy = newValue } }
     }
 
     public var nonConformingFloatDecodingStrategy: DictionaryNonConformingFloatDecodingStrategy {
-        get { optionsLock.withLock(\.nonConformingFloatDecodingStrategy) }
-        set { optionsLock.withLock { $0.nonConformingFloatDecodingStrategy = newValue } }
+        get { contextLock.withLock(\.options.nonConformingFloatDecodingStrategy) }
+        set { updateOptions { $0.nonConformingFloatDecodingStrategy = newValue } }
     }
 
     public var keyDecodingStrategy: DictionaryKeyDecodingStrategy {
-        get { optionsLock.withLock(\.keyDecodingStrategy) }
-        set { optionsLock.withLock { $0.keyDecodingStrategy = newValue } }
+        get { contextLock.withLock(\.options.keyDecodingStrategy) }
+        set { updateOptions { $0.keyDecodingStrategy = newValue } }
     }
 
     public var userInfo: [CodingUserInfoKey: Sendable] {
-        get { optionsLock.withLock(\.userInfo) }
-        set { optionsLock.withLock { $0.userInfo = newValue } }
+        get { contextLock.withLock(\.options.userInfo) }
+        set { updateOptions { $0.userInfo = newValue } }
     }
 
     // MARK: - Initializers
@@ -58,17 +59,25 @@ public final class DictionaryDecoder: Sendable {
             userInfo: userInfo
         )
 
-        self.optionsLock = OSAllocatedUnfairLock(initialState: options)
+        self.contextLock = OSAllocatedUnfairLock(initialState: DictionaryDecodingContext(options: options))
     }
 
     // MARK: - Instance Methods
 
-    private func rootDecoder(for dictionary: [String: Any]) -> DictionaryValueDecoder {
-        let options = optionsLock.withLock(\.self)
+    private func updateOptions(_ update: @Sendable (_ options: inout DictionaryDecodingOptions) -> Void) {
+        contextLock.withLock { context in
+            var options = context.options
 
-        return DictionaryValueDecoder(
+            update(&options)
+
+            context = DictionaryDecodingContext(options: options)
+        }
+    }
+
+    private func rootDecoder(for dictionary: [String: Any]) -> DictionaryValueDecoder {
+        DictionaryValueDecoder(
             component: dictionary,
-            context: DictionaryDecodingContext(options: options),
+            context: contextLock.withLock(\.self),
             parent: nil,
             key: .empty
         )

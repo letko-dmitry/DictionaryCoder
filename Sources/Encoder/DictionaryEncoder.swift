@@ -6,42 +6,43 @@ public final class DictionaryEncoder: Sendable {
 
     // MARK: - Instance Properties
 
-    // The options and the user info are kept under one lock, which takes one allocation and one locking per call.
-    private let optionsLock: OSAllocatedUnfairLock<DictionaryEncodingOptions>
+    // The context of the current options and user info, which every call shares under one lock,
+    // so that a call takes a reference to it rather than a copy of the options and an allocation.
+    private let contextLock: OSAllocatedUnfairLock<DictionaryEncodingContext>
 
     public var dateEncodingStrategy: DictionaryDateEncodingStrategy {
-        get { optionsLock.withLock(\.dateEncodingStrategy) }
-        set { optionsLock.withLock { $0.dateEncodingStrategy = newValue } }
+        get { contextLock.withLock(\.options.dateEncodingStrategy) }
+        set { updateOptions { $0.dateEncodingStrategy = newValue } }
     }
 
     public var dataEncodingStrategy: DictionaryDataEncodingStrategy {
-        get { optionsLock.withLock(\.dataEncodingStrategy) }
-        set { optionsLock.withLock { $0.dataEncodingStrategy = newValue } }
+        get { contextLock.withLock(\.options.dataEncodingStrategy) }
+        set { updateOptions { $0.dataEncodingStrategy = newValue } }
     }
 
     public var decimalEncodingStrategy: DictionaryDecimalEncodingStrategy {
-        get { optionsLock.withLock(\.decimalEncodingStrategy) }
-        set { optionsLock.withLock { $0.decimalEncodingStrategy = newValue } }
+        get { contextLock.withLock(\.options.decimalEncodingStrategy) }
+        set { updateOptions { $0.decimalEncodingStrategy = newValue } }
     }
 
     public var nonConformingFloatEncodingStrategy: DictionaryNonConformingFloatEncodingStrategy {
-        get { optionsLock.withLock(\.nonConformingFloatEncodingStrategy) }
-        set { optionsLock.withLock { $0.nonConformingFloatEncodingStrategy = newValue } }
+        get { contextLock.withLock(\.options.nonConformingFloatEncodingStrategy) }
+        set { updateOptions { $0.nonConformingFloatEncodingStrategy = newValue } }
     }
 
     public var nilEncodingStrategy: DictionaryNilEncodingStrategy {
-        get { optionsLock.withLock(\.nilEncodingStrategy) }
-        set { optionsLock.withLock { $0.nilEncodingStrategy = newValue } }
+        get { contextLock.withLock(\.options.nilEncodingStrategy) }
+        set { updateOptions { $0.nilEncodingStrategy = newValue } }
     }
 
     public var keyEncodingStrategy: DictionaryKeyEncodingStrategy {
-        get { optionsLock.withLock(\.keyEncodingStrategy) }
-        set { optionsLock.withLock { $0.keyEncodingStrategy = newValue } }
+        get { contextLock.withLock(\.options.keyEncodingStrategy) }
+        set { updateOptions { $0.keyEncodingStrategy = newValue } }
     }
 
     public var userInfo: [CodingUserInfoKey: Sendable] {
-        get { optionsLock.withLock(\.userInfo) }
-        set { optionsLock.withLock { $0.userInfo = newValue } }
+        get { contextLock.withLock(\.options.userInfo) }
+        set { updateOptions { $0.userInfo = newValue } }
     }
 
     // MARK: - Initializers
@@ -65,19 +66,27 @@ public final class DictionaryEncoder: Sendable {
             userInfo: userInfo
         )
 
-        self.optionsLock = OSAllocatedUnfairLock(initialState: options)
+        self.contextLock = OSAllocatedUnfairLock(initialState: DictionaryEncodingContext(options: options))
     }
 
     // MARK: - Instance Methods
+
+    private func updateOptions(_ update: @Sendable (_ options: inout DictionaryEncodingOptions) -> Void) {
+        contextLock.withLock { context in
+            var options = context.options
+
+            update(&options)
+
+            context = DictionaryEncodingContext(options: options)
+        }
+    }
 
     private func encodeRootValue<T>(
         _ value: T,
         encoding: (_ encoder: Encoder) throws -> Void
     ) throws -> [String: Sendable] {
-        let options = optionsLock.withLock(\.self)
-
         let encoder = DictionaryValueEncoder(
-            context: DictionaryEncodingContext(options: options),
+            context: contextLock.withLock(\.self),
             parent: nil,
             key: .empty
         )
