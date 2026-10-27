@@ -108,15 +108,20 @@ internal enum DictionaryKeyedComponents {
     }
 }
 
-// A class rather than a structure, as `KeyedDecodingContainer` copies a structure for every call,
-// which retains each of its references.
-internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
+// A structure of the decoder alone, which the box of `KeyedDecodingContainer` holds without allocating it
+// and copies with one retain for every call, so the components are kept by the decoder of the dictionary.
+internal struct DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDecodingContainerProtocol {
 
     // MARK: - Instance Properties
 
     /// The decoder of the dictionary, which is the node of the coding path of its values.
     internal let decoder: DictionaryValueDecoder
-    internal let components: DictionaryKeyedComponents
+
+    // The decoder keeps the components from the creation of the container.
+    @inline(always)
+    internal var components: DictionaryKeyedComponents {
+        unsafe decoder.state.keyedComponents.unsafelyUnwrapped
+    }
 
     internal var codingPath: [CodingKey] {
         decoder.codingPath
@@ -128,33 +133,7 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
 
     // MARK: - Initializers
 
-    internal init(decoder: DictionaryValueDecoder, components: DictionaryKeyedComponents) {
-        switch decoder.context.options.keyDecodingStrategy {
-        case .useDefaultKeys:
-            self.components = components
-
-        case let .custom(closure):
-            var convertedComponents = [String: Any](minimumCapacity: components.count)
-
-            // The paths of the keys differ in the last key only, so one array is changed for all of them.
-            var keyPath = decoder.codingPath
-
-            keyPath.append(AnyCodingKey.super)
-
-            // Keys are converted in order, so that the value of the smallest key wins when converted keys collide.
-            for (key, component) in components.keysAndValues.sorted(by: { $0.key < $1.key }) {
-                keyPath[keyPath.count - 1] = AnyCodingKey(key)
-
-                let convertedKey = closure(keyPath).stringValue
-
-                if convertedComponents.index(forKey: convertedKey) == nil {
-                    convertedComponents[convertedKey] = component
-                }
-            }
-
-            self.components = .native(convertedComponents)
-        }
-
+    internal init(decoder: DictionaryValueDecoder) {
         self.decoder = decoder
     }
 
@@ -417,5 +396,39 @@ internal final class DictionaryKeyedDecodingContainer<Key: CodingKey>: KeyedDeco
 
     internal func superDecoder() throws -> Decoder {
         superDecoder(forAnyKey: AnyCodingKey.super)
+    }
+}
+
+extension DictionaryValueDecoder {
+
+    // MARK: - Instance Methods
+
+    /// The components with the keys converted by the key decoding strategy.
+    internal func convertingKeys(of components: consuming DictionaryKeyedComponents) -> DictionaryKeyedComponents {
+        switch context.options.keyDecodingStrategy {
+        case .useDefaultKeys:
+            return components
+
+        case let .custom(closure):
+            var convertedComponents = [String: Any](minimumCapacity: components.count)
+
+            // The paths of the keys differ in the last key only, so one array is changed for all of them.
+            var keyPath = codingPath
+
+            keyPath.append(AnyCodingKey.super)
+
+            // Keys are converted in order, so that the value of the smallest key wins when converted keys collide.
+            for (key, component) in components.keysAndValues.sorted(by: { $0.key < $1.key }) {
+                keyPath[keyPath.count - 1] = AnyCodingKey(key)
+
+                let convertedKey = closure(keyPath).stringValue
+
+                if convertedComponents.index(forKey: convertedKey) == nil {
+                    convertedComponents[convertedKey] = component
+                }
+            }
+
+            return .native(convertedComponents)
+        }
     }
 }

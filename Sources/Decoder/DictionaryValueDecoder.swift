@@ -13,6 +13,9 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
 
         // MARK: - Instance Properties
 
+        /// The components of the keyed containers of the value, which are looked up once for all of them.
+        internal var keyedComponents: DictionaryKeyedComponents?
+
         /// The components of the unkeyed containers of the value, which are looked up once for all of them.
         internal var unkeyedComponents: DictionaryUnkeyedComponents?
 
@@ -136,7 +139,9 @@ internal final class DictionaryValueDecoder: CodingPathNode, Decoder, SingleValu
             throw DecodingError.keyedContainerTypeMismatch(at: self, component: component)
         }
 
-        return KeyedDecodingContainer(DictionaryKeyedDecodingContainer<Key>(decoder: self, components: components))
+        state.keyedComponents = convertingKeys(of: components)
+
+        return KeyedDecodingContainer(DictionaryKeyedDecodingContainer<Key>(decoder: self))
     }
 
     internal func unkeyedContainer() throws -> UnkeyedDecodingContainer {
