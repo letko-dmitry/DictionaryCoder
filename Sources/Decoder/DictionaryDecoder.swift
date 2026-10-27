@@ -95,8 +95,11 @@ public final class DictionaryDecoder: Sendable {
         from dictionary: [String: Any],
         decoding: (_ decoder: DictionaryValueDecoder) throws -> T
     ) throws -> T {
+        // The context is taken only for a new decoder, as a kept one refers to it already.
         let (reusableDecoder, context) = stateLock.withLockUnchecked { state in
-            (state.reusableDecoder.take(), state.context)
+            let reusableDecoder = state.reusableDecoder.take()
+
+            return (reusableDecoder, reusableDecoder == nil ? state.context : nil)
         }
 
         let decoder: DictionaryValueDecoder
@@ -106,7 +109,12 @@ public final class DictionaryDecoder: Sendable {
             reusableDecoder.component = dictionary
             decoder = reusableDecoder
         } else {
-            decoder = DictionaryValueDecoder(component: dictionary, context: context, parent: nil, key: .empty)
+            decoder = DictionaryValueDecoder(
+                component: dictionary,
+                context: unsafe context.unsafelyUnwrapped,
+                parent: nil,
+                key: .empty
+            )
         }
 
         let value = try decoding(decoder)

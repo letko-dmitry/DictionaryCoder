@@ -102,12 +102,16 @@ public final class DictionaryEncoder: Sendable {
         _ value: T,
         encoding: (_ encoder: Encoder) throws -> Void
     ) throws -> [String: Sendable] {
+        // The context is taken only for a new encoder, as a kept one refers to it already.
         let (reusableEncoder, context) = stateLock.withLockUnchecked { state in
-            (state.reusableEncoder.take(), state.context)
+            let reusableEncoder = state.reusableEncoder.take()
+
+            return (reusableEncoder, reusableEncoder == nil ? state.context : nil)
         }
 
         // Moved out of the binding, which would refer to the encoder to the end of the call and keep it from reuse.
-        let encoder = (consume reusableEncoder) ?? DictionaryValueEncoder(context: context, parent: nil, key: .empty)
+        let encoder = (consume reusableEncoder)
+            ?? DictionaryValueEncoder(context: unsafe context.unsafelyUnwrapped, parent: nil, key: .empty)
 
         do {
             try encoding(encoder)
