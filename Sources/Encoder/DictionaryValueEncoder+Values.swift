@@ -214,18 +214,30 @@ extension DictionaryValueEncoder {
             return value
         }
 
-        switch context.options.nonConformingFloatEncodingStrategy {
-        case let .convertToString(positiveInfinity, _, _) where value == T.infinity:
+        if let string = nonConformingFloatString(for: NonFiniteNumber(value)) {
+            return string
+        }
+
+        throw EncodingError.invalidFloatingPointValue(value, at: position())
+    }
+
+    // Out of line and not generic, so that encoding every type of number does not carry the rarely used strategy.
+    @inline(never)
+    private func nonConformingFloatString(for number: NonFiniteNumber) -> String? {
+        guard case let .convertToString(positiveInfinity, negativeInfinity, nan) =
+            context.options.nonConformingFloatEncodingStrategy else {
+            return nil
+        }
+
+        switch number {
+        case .positiveInfinity:
             return positiveInfinity
 
-        case let .convertToString(_, negativeInfinity, _) where value == -T.infinity:
+        case .negativeInfinity:
             return negativeInfinity
 
-        case let .convertToString(_, _, nan):
+        case .nan:
             return nan
-
-        case .throw:
-            throw EncodingError.invalidFloatingPointValue(value, at: position())
         }
     }
 
