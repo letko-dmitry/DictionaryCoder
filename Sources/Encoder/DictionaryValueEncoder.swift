@@ -374,8 +374,15 @@ extension EncodingError {
 
     // MARK: - Type Methods
 
+    // Generic only to box the value, which a caller would reserve stack space for on every call,
+    // so that the error itself is built by one function for all types.
     @inline(never)
     fileprivate static func valueAlreadyEncoded<T>(_ value: T, at node: CodingPathNode) -> any Error {
+        valueAlreadyEncoded(boxing: value, at: node)
+    }
+
+    @inline(never)
+    fileprivate static func valueAlreadyEncoded(boxing value: Any, at node: CodingPathNode) -> any Error {
         let context = Context(
             codingPath: node.path,
             debugDescription: "Single value container already has encoded value"

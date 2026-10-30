@@ -1,5 +1,26 @@
 import Foundation
 
+/// A floating point number that is not finite, which the strategy for such numbers converts or rejects.
+private enum NonFiniteNumber {
+
+    // MARK: - Enumeration Cases
+
+    case positiveInfinity
+    case negativeInfinity
+    case nan
+
+    // MARK: - Initializers
+
+    @inline(always)
+    init<T: FloatingPoint>(_ number: T) {
+        if number.isInfinite {
+            self = number.sign == .minus ? .negativeInfinity : .positiveInfinity
+        } else {
+            self = .nan
+        }
+    }
+}
+
 extension DictionaryValueEncoder {
 
     // MARK: - Instance Methods
@@ -229,22 +250,32 @@ extension EncodingError {
 
     // MARK: - Type Methods
 
+    // Generic only to box the value, which a caller would reserve stack space for on every call,
+    // so that the error itself is built by one function for all types.
     @inline(never)
     fileprivate static func invalidFloatingPointValue<T: FloatingPoint>(
         _ value: T,
         at position: CodingPosition
     ) -> any Error {
-        let valueDescription: String
+        invalidFloatingPointValue(boxing: value, of: T.self, number: NonFiniteNumber(value), at: position)
+    }
 
-        switch value {
-        case T.infinity:
-            valueDescription = "\(T.self).infinity"
+    @inline(never)
+    fileprivate static func invalidFloatingPointValue(
+        boxing value: Any,
+        of type: Any.Type,
+        number: NonFiniteNumber,
+        at position: CodingPosition
+    ) -> any Error {
+        let valueDescription = switch number {
+        case .positiveInfinity:
+            "\(type).infinity"
 
-        case -T.infinity:
-            valueDescription = "-\(T.self).infinity"
+        case .negativeInfinity:
+            "-\(type).infinity"
 
-        default:
-            valueDescription = "\(T.self).nan"
+        case .nan:
+            "\(type).nan"
         }
 
         let debugDescription = """

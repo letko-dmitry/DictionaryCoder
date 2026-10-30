@@ -345,11 +345,22 @@ extension DecodingError {
         Self.dataCorrupted(Context(codingPath: position.path, debugDescription: debugDescription))
     }
 
+    // Generic only to box the number, which a caller would reserve stack space for on every call,
+    // so that the error itself is built by one function for all types.
     @inline(never)
     fileprivate static func nonConformingNumber<T: FloatingPoint>(
         _ number: T,
         at position: CodingPosition
     ) -> any Error {
-        dataCorrupted(at: position, debugDescription: "Parsed dictionary number \(number) does not fit in \(T.self).")
+        nonConformingNumber(boxing: number, of: T.self, at: position)
+    }
+
+    @inline(never)
+    fileprivate static func nonConformingNumber(
+        boxing number: Any,
+        of type: Any.Type,
+        at position: CodingPosition
+    ) -> any Error {
+        dataCorrupted(at: position, debugDescription: "Parsed dictionary number \(number) does not fit in \(type).")
     }
 }
