@@ -48,22 +48,6 @@ internal struct PrimitiveArrayTypes {
     // Identifiers of generic types are cached, as looking up their metadata on every call is costly.
     internal static let identifiers = Self()
 
-    // MARK: - Type Methods
-
-    internal static func contains(_ type: Any.Type) -> Bool {
-        let identifiers = Self.identifiers
-
-        switch ObjectIdentifier(type) {
-        case identifiers.string, identifiers.bool, identifiers.double, identifiers.float,
-            identifiers.int, identifiers.int8, identifiers.int16, identifiers.int32, identifiers.int64,
-            identifiers.uInt, identifiers.uInt8, identifiers.uInt16, identifiers.uInt32, identifiers.uInt64:
-            return true
-
-        default:
-            return false
-        }
-    }
-
     // MARK: - Instance Properties
 
     internal let string = ObjectIdentifier([String].self)
@@ -80,6 +64,10 @@ internal struct PrimitiveArrayTypes {
     internal let uInt64 = ObjectIdentifier([UInt64].self)
     internal let double = ObjectIdentifier([Double].self)
     internal let float = ObjectIdentifier([Float].self)
+
+    internal var all: [ObjectIdentifier] {
+        [string, bool, int, int8, int16, int32, int64, uInt, uInt8, uInt16, uInt32, uInt64, double, float]
+    }
 }
 
 internal struct PrimitiveDictionaryTypes {
@@ -88,22 +76,6 @@ internal struct PrimitiveDictionaryTypes {
 
     // Identifiers of generic types are cached, as looking up their metadata on every call is costly.
     internal static let identifiers = Self()
-
-    // MARK: - Type Methods
-
-    internal static func contains(_ type: Any.Type) -> Bool {
-        let identifiers = Self.identifiers
-
-        switch ObjectIdentifier(type) {
-        case identifiers.string, identifiers.bool, identifiers.double, identifiers.float,
-            identifiers.int, identifiers.int8, identifiers.int16, identifiers.int32, identifiers.int64,
-            identifiers.uInt, identifiers.uInt8, identifiers.uInt16, identifiers.uInt32, identifiers.uInt64:
-            return true
-
-        default:
-            return false
-        }
-    }
 
     // MARK: - Instance Properties
 
@@ -121,6 +93,10 @@ internal struct PrimitiveDictionaryTypes {
     internal let uInt64 = ObjectIdentifier([String: UInt64].self)
     internal let double = ObjectIdentifier([String: Double].self)
     internal let float = ObjectIdentifier([String: Float].self)
+
+    internal var all: [ObjectIdentifier] {
+        [string, bool, int, int8, int16, int32, int64, uInt, uInt8, uInt16, uInt32, uInt64, double, float]
+    }
 }
 
 internal enum PrimitiveTypes {
@@ -147,36 +123,116 @@ internal enum PrimitiveTypes {
 }
 
 /// How dictionaries hold the values of a type other than the primitive ones, which are checked for in place.
-internal enum ValueKind {
+internal enum ValueKind: UInt8 {
 
     // MARK: - Nested Types
 
-    // Identifiers of types of other modules and of generic types are cached,
-    // as looking up their metadata on every call is costly.
-    private struct Identifiers {
+    /// The kinds of the types that are not coded in containers of their own, by the identifiers of the types.
+    ///
+    /// A lookup hashes the bits of an identifier rather than comparing it with all of them,
+    /// as most types are of nested values, which match none.
+    private struct Table {
 
         // MARK: - Type Properties
 
+        // Identifiers of types of other modules and of generic types are cached,
+        // as looking up their metadata on every call is costly.
         static let shared = Self()
+
+        // A power of two, more than three times the kinds, so that most lookups end at their first slot.
+        private static let slotCount = 128
+        private static let slotMask = slotCount - 1
+
+        // MARK: - Type Methods
+
+        // Metadata is aligned, so the lowest bits of an identifier are the same for all types.
+        private static func slot(of identifier: UInt) -> Int {
+            Int(truncatingIfNeeded: (identifier >> 4) ^ (identifier >> 11)) & slotMask
+        }
+
+        private static func slot(after slot: Int) -> Int {
+            (slot + 1) & slotMask
+        }
+
+        // Out of line, as it runs once for every kind, and inlined it would copy the probing for every one.
+        @inline(never)
+        private static func insert(
+            _ kind: ValueKind,
+            for identifier: ObjectIdentifier,
+            into entries: UnsafeMutableBufferPointer<UInt>
+        ) {
+            let bits = UInt(bitPattern: identifier)
+            var slot = Self.slot(of: bits)
+
+            while unsafe entries[slot] != 0 {
+                slot = Self.slot(after: slot)
+            }
+
+            unsafe entries[slot] = bits
+            unsafe entries[slotCount + slot] = UInt(kind.rawValue)
+        }
 
         // MARK: - Instance Properties
 
-        let date = ObjectIdentifier(Date.self)
-        let data = ObjectIdentifier(Data.self)
-        let url = ObjectIdentifier(URL.self)
-        let decimal = ObjectIdentifier(Decimal.self)
-        let int128: ObjectIdentifier?
-        let uInt128: ObjectIdentifier?
+        // The bits of the identifiers, then the raw values of their kinds, in one array of words rather than arrays
+        // of the identifiers and the kinds themselves, which would make the compiler emit their metadata,
+        // value witnesses and the copying of each array. Zero, an address of no type, marks an empty slot.
+        private let entries: [UInt]
 
         // MARK: - Initializers
 
-        init() {
-            if #available(watchOS 11.0, *) {
-                int128 = ObjectIdentifier(Int128.self)
-                uInt128 = ObjectIdentifier(UInt128.self)
-            } else {
-                int128 = nil
-                uInt128 = nil
+        private init() {
+            // Filled in place, as setting the elements of an array one by one makes the compiler emit
+            // the copying of the array, which no other code here needs.
+            entries = unsafe [UInt](unsafeUninitializedCapacity: 2 * Self.slotCount) { buffer, count in
+                unsafe buffer.initialize(repeating: 0)
+                count = 2 * Self.slotCount
+
+                unsafe Self.insert(.double, for: ObjectIdentifier(Double.self), into: buffer)
+                unsafe Self.insert(.float, for: ObjectIdentifier(Float.self), into: buffer)
+                unsafe Self.insert(.date, for: ObjectIdentifier(Date.self), into: buffer)
+                unsafe Self.insert(.data, for: ObjectIdentifier(Data.self), into: buffer)
+                unsafe Self.insert(.url, for: ObjectIdentifier(URL.self), into: buffer)
+                unsafe Self.insert(.decimal, for: ObjectIdentifier(Decimal.self), into: buffer)
+
+                if #available(watchOS 11.0, *) {
+                    unsafe Self.insert(.int128, for: ObjectIdentifier(Int128.self), into: buffer)
+                    unsafe Self.insert(.uInt128, for: ObjectIdentifier(UInt128.self), into: buffer)
+                }
+
+                for identifier in PrimitiveArrayTypes.identifiers.all {
+                    unsafe Self.insert(.primitiveArray, for: identifier, into: buffer)
+                }
+
+                for identifier in PrimitiveDictionaryTypes.identifiers.all {
+                    unsafe Self.insert(.primitiveDictionary, for: identifier, into: buffer)
+                }
+            }
+        }
+
+        // MARK: - Instance Methods
+
+        // Inlined along with the initializer of the kind, which is all that calls it.
+        @inline(always)
+        func kind(of identifier: ObjectIdentifier) -> ValueKind {
+            let bits = UInt(bitPattern: identifier)
+
+            // Read through a buffer, as the mask keeps every slot within the entries, which the bounds checks
+            // of the array cannot tell.
+            return entries.withUnsafeBufferPointer { entries in
+                var slot = Self.slot(of: bits)
+
+                while unsafe entries[slot] != 0 {
+                    if unsafe entries[slot] == bits {
+                        let rawValue = unsafe UInt8(truncatingIfNeeded: entries[Self.slotCount + slot])
+
+                        return ValueKind(rawValue: rawValue) ?? .nested
+                    }
+
+                    slot = Self.slot(after: slot)
+                }
+
+                return .nested
             }
         }
     }
@@ -203,46 +259,10 @@ internal enum ValueKind {
 
     // MARK: - Initializers
 
-    // Out of line and not generic, as comparing a type with all of these inline makes coding values of every type
-    // slower, through the lookups of the metadata and the stack space that the comparisons take.
-    @inline(never)
+    // Inlined, as only the two functions that code values of other types look their types up,
+    // so that a lookup costs them no call.
+    @inline(always)
     internal init(of type: Any.Type) {
-        let identifiers = Identifiers.shared
-        let typeIdentifier = ObjectIdentifier(type)
-
-        switch typeIdentifier {
-        case ObjectIdentifier(Double.self):
-            self = .double
-
-        case ObjectIdentifier(Float.self):
-            self = .float
-
-        case identifiers.date:
-            self = .date
-
-        case identifiers.data:
-            self = .data
-
-        case identifiers.url:
-            self = .url
-
-        case identifiers.decimal:
-            self = .decimal
-
-        case identifiers.int128:
-            self = .int128
-
-        case identifiers.uInt128:
-            self = .uInt128
-
-        default:
-            if PrimitiveArrayTypes.contains(type) {
-                self = .primitiveArray
-            } else if PrimitiveDictionaryTypes.contains(type) {
-                self = .primitiveDictionary
-            } else {
-                self = .nested
-            }
-        }
+        self = Table.shared.kind(of: ObjectIdentifier(type))
     }
 }
