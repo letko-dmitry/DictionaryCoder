@@ -84,14 +84,43 @@ extension DictionaryValueDecoder {
         case let .native(components):
             return try decodeElements(of: type, count: components.count, at: key()) { components[$0] }
 
-        case let .foundation(components):
+        // Floating point numbers are decoded out of line, so their loops are small,
+        // and one for each kind of components reads the elements faster than a shared one.
+        case let .foundation(components) where type == Double.self || type == Float.self:
             return try decodeElements(of: type, count: components.count, at: key()) { components[$0] }
 
-        case let .optionals(components):
+        case let .optionals(components) where type == Double.self || type == Float.self:
             return try decodeElements(of: type, count: components.count, at: key()) { components[$0] }
+
+        case let .foundation(components):
+            return try decodeElements(of: type, foundationComponents: components, optionalComponents: [], at: key)
+
+        case let .optionals(components):
+            return try decodeElements(of: type, foundationComponents: nil, optionalComponents: components, at: key)
 
         case nil:
             return nil
+        }
+    }
+
+    // Foundation arrays and arrays of optionals share one loop, as a loop is copied for every way of reading
+    // the elements, for every type of them. Telling them apart by the Foundation array is faster than by the kind
+    // of the components, and taking the key as the closure of the caller rather than another autoclosure
+    // lets the compiler merge the copies of `decodeArray(of:from:at:)`.
+    private func decodeElements<Element: Decodable>(
+        of type: Element.Type,
+        foundationComponents: NSArray?,
+        optionalComponents: [Any?],
+        at key: () -> CodingPathKey
+    ) throws -> [Element] {
+        let count = foundationComponents?.count ?? optionalComponents.count
+
+        return try decodeElements(of: type, count: count, at: key()) { index in
+            if let foundationComponents {
+                return foundationComponents[index]
+            }
+
+            return optionalComponents[index]
         }
     }
 
