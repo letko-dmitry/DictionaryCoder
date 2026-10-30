@@ -1126,7 +1126,7 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
     }
 
     func testThatDecoderDoesNotKeepDecodedDictionaries() throws {
-        final class Component {}
+        final class Component { }
 
         struct DecodableStruct: Decodable {
             struct NestedStruct: Decodable {

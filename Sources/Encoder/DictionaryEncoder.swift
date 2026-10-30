@@ -110,6 +110,7 @@ public final class DictionaryEncoder: Sendable {
         }
 
         // Moved out of the binding, which would refer to the encoder to the end of the call and keep it from reuse.
+        // swiftformat:disable:next redundantParens - the parentheses show that `consume` takes the binding alone
         let encoder = (consume reusableEncoder)
             ?? DictionaryValueEncoder(context: unsafe context.unsafelyUnwrapped, parent: nil, key: .empty)
 

@@ -11,7 +11,7 @@ internal struct DictionaryUnkeyedEncodingStorage {
             value
 
         case nil:
-            Optional<Any>.none as Any
+            Any?.none as Any
         }
     }
 

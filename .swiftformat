@@ -1,0 +1,126 @@
+# SwiftFormat configuration for this repository.
+#
+# RULES URL: https://github.com/nicklockwood/SwiftFormat/blob/main/Rules.md
+# OPTIONS:   swiftformat --options
+# RULE INFO: swiftformat --ruleinfo <name>
+#
+# Derived from this tree: every option and --disable below was measured against the code with
+# SwiftFormat 0.64.4. A rule is disabled when it would rewrite a style the code writes on purpose,
+# or rewrite code into a SwiftLint violation. A number is how many files it rewrote.
+#
+# The scheme pre-action formats in place before the SwiftLint build phase and the compiler run,
+# so SwiftFormat fixes and SwiftLint reports what is left. To run it by hand: Scripts/swiftformat.sh
+#
+# The compiler version comes from .swift-version.
+
+# --- Options --------------------------------------------------------------------------------------
+
+# Package.swift's swiftLanguageModes and SWIFT_VERSION of the Xcode targets.
+--language-mode 6
+
+# SwiftLint's trailing_comma forbids a trailing comma in a collection. (default `always`: 20)
+--trailing-commas never
+
+# The tree writes `{ }`. (spaced: 1; default no-space: 2)
+--empty-braces spaced
+
+# A type body starts with a blank line here. (default `remove`: 37)
+--type-blank-lines preserve
+
+# SwiftLint's no_extension_access_modifier puts access control on the declarations. (default: 11)
+--extension-acl on-declarations
+
+# The tree writes `0..<count`. (default spaced: 4)
+--ranges no-space
+
+# SwiftLint's function_name_whitespace wants `func == (`. Today's default, pinned.
+--operator-func spaced
+
+# Sorts each blank-line-separated block of imports on its own, keeping `@testable import` apart.
+# (preserve: 2; default: 6)
+--hoist-imports preserve
+
+# SwiftLint's file_header forbids a header comment, which Xcode's file templates add.
+--header strip
+
+# SwiftLint's number_separator wants separators from five digits; the default strips them below six.
+# Fractions stay as written: --fraction-grouping turns `.123_45` into `.12_345`, which it reports.
+--decimal-grouping 3,5
+
+# SwiftLint's modifier_order puts access control before `final` and `override`; the default puts
+# `override` first, and the two would undo each other on every build.
+--modifier-order private,fileprivate,internal,package,public,open,private(set),fileprivate(set),internal(set),package(set),public(set),open(set),final,override,weak,unowned,unowned(safe),unowned(unsafe),mutating,nonmutating,static,class,required,convenience,lazy,dynamic,optional,indirect,isolated,nonisolated,nonisolated(unsafe),borrowing,consuming,prefix,infix,postfix,async
+
+# Today's defaults, pinned: any other value can collapse a bracket onto its content, which SwiftLint's
+# multiline_arguments_brackets, multiline_literal_brackets and multiline_parameters_brackets report.
+--wrap-arguments preserve
+--wrap-collections preserve
+--wrap-conditions preserve
+--wrap-type-aliases preserve
+--wrap-return-type preserve
+--wrap-effects preserve
+
+# --- Excludes -------------------------------------------------------------------------------------
+#
+# Mirrors .gitignore. Hidden directories (.build, .swiftpm) are skipped anyway.
+--exclude build,DerivedData
+
+# --- Rules enabled beyond the defaults ------------------------------------------------------------
+#
+# Each repairs what an enabled SwiftLint rule reports, and none changes a line today.
+--enable isEmpty                   # empty_count
+--enable preferContains            # contains_over_filter_is_empty, contains_over_first_not_nil
+--enable preferFirstWhere          # first_where
+--enable preferCountWhere          # contains_over_filter_count
+--enable preferMinOverSorted       # sorted_first_last, for `.first`
+--enable preferFlatMap             # flatmap_over_map_reduce, reduce_into
+--enable blankLineAfterSwitchCase  # vertical_whitespace_between_cases, after multiline cases
+--enable wrapCaseBodies            # switch_case_on_newline
+--enable wrapGuardStatementBodies  # conditional_returns_on_newline, for `guard`
+#
+# No SwiftLint pairing, but no change today and no risk of rewriting working code.
+--enable emptyExtensions
+--enable singlePropertyPerLine
+--enable commonTypos
+#
+# NOT enabled:
+# - wrapMultilineFunctionChains, although it repairs multiline_function_chains: with `indent` off,
+#   it wraps a call to column 0, which indentation_width reports.
+# - preferLazyMap and preferSwiftStringAPI rewrite code paths whose speed is measured here.
+# - preferSwiftTesting would move the XCTest suite to Swift Testing.
+
+# --- Disabled rules -------------------------------------------------------------------------------
+
+# Rewrites code into a SwiftLint violation.
+--disable redundantInternal              # (18) explicit_acl wants `internal` written out
+--disable wrapMultilineStatementBraces   # (3) moves the brace of a multiline condition to its own
+                                         # line, which opening_brace reports
+
+# Fights Xcode, which indents this code: a wrapped operand gets an extra level here and none in Xcode.
+# SwiftLint's indentation_width still checks indentation on every build. (3)
+--disable indent
+
+# With `indent` off, a rule that changes the nesting depth leaves the body at its old indentation.
+--disable redundantClosure
+
+# KNOWN DEFECT, kept on: redundantParens rewrites `(consume x)[range]` into `consume x[range]`, which
+# does not compile. `(consume reusableEncoder) ?? …` keeps its parentheses with a
+# `// swiftformat:disable:next redundantParens - <reason>` line; anything after ` - ` is ignored.
+
+# Rewrites code that is written that way on purpose.
+--disable redundantStaticSelf      # (1) `Self.dataCorrupted(…)` inside the static method of the same
+                                   # name, where the bare call reads as recursion
+--disable conditionalAssignment    # (3) turns `let x: T` and a switch that assigns it into an
+                                   # expression; with it on, redundantReturn also strips the `return`
+                                   # of every switch case (7)
+--disable hoistTry                 # (8) moves `try` off the throwing call onto calls that do not throw
+--disable docComments              # (15) turns the `//` comments that explain an implementation into
+                                   # `///` documentation
+--disable redundantSelf            # (9) the tree writes `self.` in some initializers and to tell
+                                   # a property from a local
+--disable redundantMemberwiseInit  # (3) removes the explicit initializers of the containers
+--disable unusedArguments          # (7) renames an unused parameter to `_`, where its name documents it
+--disable opaqueGenericParameters  # (8) rewrites named generic parameters to `some`, public API included
+--disable noForceUnwrapInTests     # (4) the tests force unwrap literals that cannot fail
+--disable blankLinesBetweenImports # (6) a blank line separates `public import`, `import` and
+                                   # `@testable import`

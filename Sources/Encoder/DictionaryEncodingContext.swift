@@ -8,7 +8,7 @@ internal final class DictionaryEncodingContext: Sendable {
     internal let options: DictionaryEncodingOptions
 
     /// What `nil` is encoded as.
-    internal let encodedNil: (any Sendable)?
+    internal let encodedNil: any Sendable?
 
     // MARK: - Initializers
 

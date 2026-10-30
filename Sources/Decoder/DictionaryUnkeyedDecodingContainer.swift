@@ -62,7 +62,7 @@ internal enum DictionaryUnkeyedComponents {
 
             // Optional elements, such as `nil` that the encoder writes, are kept in an array of `Any` wrapped,
             // so they are unwrapped as converting the array to `[Any?]` would.
-            if storedType(of: component) == Optional<Any>.self {
+            if storedType(of: component) == Any?.self {
                 return Self.cast(component, to: Any?.self)
             }
 

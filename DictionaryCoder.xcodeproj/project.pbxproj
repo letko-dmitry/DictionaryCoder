@@ -179,6 +179,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		2E4C27C31041680D7CA95B2D /* .swiftformat */ = {isa = PBXFileReference; lastKnownFileType = text; path = .swiftformat; sourceTree = "<group>"; };
 		C0007FFA23CBAAA5005F95E0 /* .swift-version */ = {isa = PBXFileReference; lastKnownFileType = text; path = ".swift-version"; sourceTree = "<group>"; };
 		C006F1A22406B13E00C3F783 /* DictionaryCoder.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DictionaryCoder.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		C013EAF323E1E0AE00F12CCB /* AnyCodingKey.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AnyCodingKey.swift; sourceTree = "<group>"; };
@@ -398,6 +399,7 @@
 				C0A01A1A23CB901C00AC2C3A /* .gitignore */,
 				C0A01A1D23CB901C00AC2C3A /* .ruby-version */,
 				C0007FFA23CBAAA5005F95E0 /* .swift-version */,
+				2E4C27C31041680D7CA95B2D /* .swiftformat */,
 				C0A01A1C23CB901C00AC2C3A /* .swiftlint.yml */,
 				C07587FB2F0282AA00694706 /* .system-version */,
 				C07587FC2F0282AA00694706 /* .xcode-runtime-version */,
