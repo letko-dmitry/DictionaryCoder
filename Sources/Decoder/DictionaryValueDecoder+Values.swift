@@ -276,11 +276,19 @@ extension DictionaryValueDecoder {
             return value
         }
 
-        if let value = component as? T {
+        if let value: T = castPrimitive(from: component) {
             return value
         }
 
         return try decodeConvertedNumber(from: component, at: position())
+    }
+
+    // Out of line, so that the cast of a value of another type, which neither the encoder nor Foundation
+    // writes, is not copied into every caller. Takes no position, so that it is specialized for every type
+    // rather than for every caller.
+    @inline(never)
+    private func castPrimitive<T>(from component: borrowing Any) -> T? {
+        copy component as? T
     }
 
     // Out of line and not generic, so that decoding every type of number does not carry the rarely used strategy.
