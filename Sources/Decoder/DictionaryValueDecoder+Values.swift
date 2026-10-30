@@ -283,27 +283,40 @@ extension DictionaryValueDecoder {
         return try decodeConvertedNumber(from: component, at: position())
     }
 
-    internal func decodeFloatingPoint<T: FloatingPoint & Decodable>(
+    // Out of line and not generic, so that decoding every type of number does not carry the rarely used strategy.
+    @inline(never)
+    private func convertedNonConformingNumber(from component: borrowing Any?) -> Double? {
+        // The component is cast first, so that the strings of the strategy are copied only for strings.
+        guard let string = copy component as? String,
+            case let .convertFromString(positiveInfinity, negativeInfinity, nan) =
+            context.options.nonConformingFloatDecodingStrategy else {
+            return nil
+        }
+
+        switch string {
+        case positiveInfinity:
+            return .infinity
+
+        case negativeInfinity:
+            return -.infinity
+
+        case nan:
+            return .nan
+
+        default:
+            return nil
+        }
+    }
+
+    internal func decodeFloatingPoint<T: BinaryFloatingPoint & Decodable>(
         _ type: T.Type,
         from component: consuming Any?,
         at position: @autoclosure () -> CodingPosition
     ) throws -> T {
         // The strategy is checked first, so that numbers are not cast to `String` with the default strategy.
         if case .convertFromString = context.options.nonConformingFloatDecodingStrategy,
-           let string = copy component as? String {
-            switch context.options.nonConformingFloatDecodingStrategy {
-            case let .convertFromString(positiveInfinity, _, _) where string == positiveInfinity:
-                return T.infinity
-
-            case let .convertFromString(_, negativeInfinity, _) where string == negativeInfinity:
-                return -T.infinity
-
-            case let .convertFromString(_, _, nan) where string == nan:
-                return T.nan
-
-            case .convertFromString, .throw:
-                break
-            }
+           let number = convertedNonConformingNumber(from: component) {
+            return T(number)
         }
 
         let number: T = try decodePrimitive(from: consume component, at: position())
