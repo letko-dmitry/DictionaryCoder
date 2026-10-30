@@ -71,12 +71,14 @@ only_rules:
   - for_where
   - force_try
   - function_body_length
+  - function_name_whitespace
   - function_parameter_count
   - generic_type_name
   - ibinspectable_in_extension
   - identical_operands
   - identifier_name
   - implicit_getter
+  - implicit_optional_initialization
   - implicit_return
   - implicitly_unwrapped_optional
   - inclusive_language
@@ -117,7 +119,6 @@ only_rules:
   - nsobject_prefer_isequal
   - number_separator
   - opening_brace
-  - operator_whitespace
   - operator_usage_whitespace
   - optional_enum_case_matching
   - orphaned_doc_comment
@@ -143,8 +144,7 @@ only_rules:
   - redundant_discardable_let
   - redundant_nil_coalescing
   - redundant_objc_attribute
-  - redundant_optional_initialization
-  - redundant_self_in_closure
+  - redundant_self
   - redundant_set_access_control
   - redundant_string_enum_value
   - redundant_type_annotation
@@ -433,9 +433,6 @@ number_separator:
   minimum_length: 5
   minimum_fraction_length: 5
   exclude_ranges: []
-
-opening_brace:
-  allow_multiline_func: false
 
 operator_usage_whitespace:
   lines_look_around: 2
