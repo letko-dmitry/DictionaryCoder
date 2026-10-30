@@ -1,6 +1,17 @@
 /// The values of an unkeyed container.
 internal struct DictionaryUnkeyedEncodingStorage {
 
+    // MARK: - Type Properties
+
+    // Most unkeyed containers of compact encodings hold a couple of elements, so room for two is reserved
+    // even when the last ones held fewer: it saves a reallocation for every container of two and more elements.
+    private static let minimumCapacityHint: UInt8 = 2
+
+    // Unkeyed containers of an encoder mostly hold as many values as its last ones, as the arrays of the elements
+    // of an array do, so the capacity hint is limited to keep large arrays from wasting memory in small ones,
+    // as the hint of keyed containers in the encoder is.
+    private static let maximumCapacityHint = 16
+
     // MARK: - Type Methods
 
     // `[Any]` cannot hold `nil` itself, so `nil` is kept as an element wrapped in `Any`.
@@ -22,6 +33,12 @@ internal struct DictionaryUnkeyedEncodingStorage {
     private var values: [Any] = []
     private var nestedEncoders: [(index: Int, encoder: DictionaryValueEncoder)] = []
 
+    /// The capacity that the first value reserves: as many values as the last two containers held at least,
+    /// so that a container of as many values does not grow while it is filled, and room for two otherwise.
+    /// Both counts are bytes, as they are limited anyway, so that the storage grows by one word rather than two.
+    private var capacityHint = Self.minimumCapacityHint
+    private var lastCount: UInt8 = 0
+
     internal var count: Int {
         values.count
     }
@@ -30,11 +47,9 @@ internal struct DictionaryUnkeyedEncodingStorage {
 
     @inline(always)
     internal mutating func append(_ value: consuming Any?) {
-        // Most unkeyed containers of compact encodings hold a couple of elements, so room for two is reserved
-        // up front. It saves a reallocation for every container of two and more elements, which grow as usual,
-        // and costs memory only for containers of one element.
+        // Reserved with the first value rather than with the container, so that empty containers allocate nothing.
         if values.isEmpty {
-            values.reserveCapacity(2)
+            values.reserveCapacity(Int(capacityHint))
         }
 
         values.append(Self.element(from: value))
@@ -51,6 +66,11 @@ internal struct DictionaryUnkeyedEncodingStorage {
         var storage = Self()
 
         swap(&storage, &self)
+
+        let heldCount = UInt8(min(storage.values.count, Self.maximumCapacityHint))
+
+        capacityHint = max(min(heldCount, storage.lastCount), Self.minimumCapacityHint)
+        lastCount = heldCount
 
         for (index, encoder) in storage.nestedEncoders {
             storage.values[index] = Self.element(from: encoder.takeValue())
