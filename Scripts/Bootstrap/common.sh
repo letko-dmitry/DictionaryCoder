@@ -19,7 +19,6 @@ readonly rbenv_style='\033[38;5;43m'
 readonly ruby_style='\033[38;5;89m'
 readonly bundler_style='\033[38;5;45m'
 readonly swift_style='\033[38;5;208m'
-readonly mint_style='\033[0;38;5;77m'
 readonly congratulations_style='\033[38;5;48m'
 
 readonly update_flag='--update'
