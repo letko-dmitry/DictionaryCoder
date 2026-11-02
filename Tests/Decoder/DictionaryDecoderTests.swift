@@ -1454,6 +1454,48 @@ final class DictionaryDecoderTests: XCTestCase, DictionaryDecoderTesting {
         }
     }
 
+    func testThatDecoderFailsWhenDecodingInvalidElementOfFoundationPrimitiveArray() {
+        let dictionary: [String: Any] = ["foo": NSArray(array: [123, "456"])]
+
+        assertDecoderFails(decoding: [String: [Int]].self, from: dictionary) { error in
+            switch error {
+            case let DecodingError.typeMismatch(type, context) where type is Int.Type:
+                return context.codingPath.map(\.stringValue) == ["foo", "1"]
+
+            default:
+                return false
+            }
+        }
+    }
+
+    func testThatDecoderFailsWhenDecodingInvalidElementOfConvertedPrimitiveArray() {
+        let dictionary: [String: Any] = ["foo": ["123", "456"] as [String]]
+
+        assertDecoderFails(decoding: [String: [Int]].self, from: dictionary) { error in
+            switch error {
+            case let DecodingError.typeMismatch(type, context) where type is Int.Type:
+                return context.codingPath.map(\.stringValue) == ["foo", "0"]
+
+            default:
+                return false
+            }
+        }
+    }
+
+    func testThatDecoderFailsWhenDecodingNilElementOfPrimitiveArray() {
+        let dictionary: [String: Any] = ["foo": [123, nil] as [Int?]]
+
+        assertDecoderFails(decoding: [String: [Int]].self, from: dictionary) { error in
+            switch error {
+            case let DecodingError.typeMismatch(type, context) where type is Int.Type:
+                return context.codingPath.map(\.stringValue) == ["foo", "1"]
+
+            default:
+                return false
+            }
+        }
+    }
+
     func testThatDecoderFailsWhenDecodingInvalidValueOfPrimitiveDictionary() {
         let dictionary: [String: Any] = ["foo": ["bar": 123, "baz": "456"] as [String: Any]]
 
