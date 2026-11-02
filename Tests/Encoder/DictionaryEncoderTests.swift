@@ -774,8 +774,9 @@ final class DictionaryEncoderTests: XCTestCase, DictionaryEncoderTesting {
 
         assertEncoderFails(encoding: value) { error in
             switch error {
-            case let EncodingError.invalidValue(invalidValue as Int, _):
+            case let EncodingError.invalidValue(invalidValue as Int, context):
                 return invalidValue == value.bar
+                    && context.debugDescription == "Single value container already has encoded value"
 
             default:
                 return false

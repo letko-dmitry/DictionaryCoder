@@ -488,6 +488,57 @@ final class DictionaryDecoderStrategiesTests: XCTestCase, DictionaryDecoderTesti
         }
     }
 
+    func testThatDecoderFailsWhenDecodingPositiveInfinityFloat() {
+        decoder.nonConformingFloatDecodingStrategy = .throw
+
+        let dictionary = ["foo": Float.infinity]
+
+        assertDecoderFails(decoding: [String: Float].self, from: dictionary) { error in
+            switch error {
+            case let DecodingError.dataCorrupted(context):
+                return context.codingPath.map(\.stringValue) == ["foo"]
+                    && context.debugDescription == "Parsed dictionary number inf does not fit in Float."
+
+            default:
+                return false
+            }
+        }
+    }
+
+    func testThatDecoderFailsWhenDecodingNegativeInfinityDouble() {
+        decoder.nonConformingFloatDecodingStrategy = .throw
+
+        let dictionary = ["foo": -Double.infinity]
+
+        assertDecoderFails(decoding: [String: Double].self, from: dictionary) { error in
+            switch error {
+            case let DecodingError.dataCorrupted(context):
+                return context.codingPath.map(\.stringValue) == ["foo"]
+                    && context.debugDescription == "Parsed dictionary number -inf does not fit in Double."
+
+            default:
+                return false
+            }
+        }
+    }
+
+    func testThatDecoderFailsWhenDecodingNanFloat() {
+        decoder.nonConformingFloatDecodingStrategy = .throw
+
+        let dictionary = ["foo": Float.nan]
+
+        assertDecoderFails(decoding: [String: Float].self, from: dictionary) { error in
+            switch error {
+            case let DecodingError.dataCorrupted(context):
+                return context.codingPath.map(\.stringValue) == ["foo"]
+                    && context.debugDescription == "Parsed dictionary number nan does not fit in Float."
+
+            default:
+                return false
+            }
+        }
+    }
+
     func testThatDecoderSucceedsWhenDecodingNonConformingFloatFromString() {
         decoder.nonConformingFloatDecodingStrategy = .convertFromString(
             positiveInfinity: "+∞",

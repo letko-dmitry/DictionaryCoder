@@ -4,6 +4,15 @@ import XCTest
 
 final class DictionaryEncoderStrategiesTests: XCTestCase, DictionaryEncoderTesting {
 
+    // MARK: - Type Methods
+
+    private static func invalidFloatingPointValueDescription(of value: String) -> String {
+        """
+        Unable to encode \(value) directly in Dictionary.
+        Use DictionaryNonConformingFloatEncodingStrategy.convertToString to specify how the value should be encoded.
+        """
+    }
+
     // MARK: - Instance Properties
 
     private(set) var encoder: DictionaryEncoder!
@@ -190,8 +199,9 @@ final class DictionaryEncoderStrategiesTests: XCTestCase, DictionaryEncoderTesti
 
         assertEncoderFails(encoding: value) { error in
             switch error {
-            case let EncodingError.invalidValue(invalidValue as Float, _):
+            case let EncodingError.invalidValue(invalidValue as Float, context):
                 return invalidValue == number
+                    && context.debugDescription == Self.invalidFloatingPointValueDescription(of: "Float.infinity")
 
             default:
                 return false
@@ -207,8 +217,9 @@ final class DictionaryEncoderStrategiesTests: XCTestCase, DictionaryEncoderTesti
 
         assertEncoderFails(encoding: value) { error in
             switch error {
-            case let EncodingError.invalidValue(invalidValue as Float, _):
+            case let EncodingError.invalidValue(invalidValue as Float, context):
                 return invalidValue == number
+                    && context.debugDescription == Self.invalidFloatingPointValueDescription(of: "-Float.infinity")
 
             default:
                 return false
@@ -223,8 +234,27 @@ final class DictionaryEncoderStrategiesTests: XCTestCase, DictionaryEncoderTesti
 
         assertEncoderFails(encoding: value) { error in
             switch error {
-            case let EncodingError.invalidValue(invalidValue as Float, _):
+            case let EncodingError.invalidValue(invalidValue as Float, context):
                 return invalidValue.isNaN
+                    && context.debugDescription == Self.invalidFloatingPointValueDescription(of: "Float.nan")
+
+            default:
+                return false
+            }
+        }
+    }
+
+    func testThatEncoderFailsWhenEncodingNegativeInfinityDouble() {
+        encoder.nonConformingFloatEncodingStrategy = .throw
+
+        let number = -Double.infinity
+        let value = ["foobar": number]
+
+        assertEncoderFails(encoding: value) { error in
+            switch error {
+            case let EncodingError.invalidValue(invalidValue as Double, context):
+                return invalidValue == number
+                    && context.debugDescription == Self.invalidFloatingPointValueDescription(of: "-Double.infinity")
 
             default:
                 return false
